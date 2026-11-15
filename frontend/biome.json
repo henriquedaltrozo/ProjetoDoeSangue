@@ -1,0 +1,167 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": {
+    "enabled": false
+  },
+  "files": {
+    "includes": ["src/**", "e2e/**", "*.ts", "!**/dist", "!**/node_modules"]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 120
+  },
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "domains": {
+      "react": "recommended"
+    },
+    "rules": {
+      "preset": "recommended"
+    }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "jsxQuoteStyle": "double",
+      "semicolons": "asNeeded",
+      "trailingCommas": "all",
+      "arrowParentheses": "always"
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["src/shared/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/features/**", "@/app/**"],
+                    "message": "shared/ não pode depender de features/ nem de app/ (as dependências só descem: app -> features -> shared)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/auth/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/app/**", "@/features/*/**", "!@/features/auth/**"],
+                    "message": "Uma feature não importa de app/ e só usa outra feature pelo index.ts dela (ex.: import { useUnits } from '@/features/scheduling')."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/notifications/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/app/**", "@/features/*/**", "!@/features/notifications/**"],
+                    "message": "Uma feature não importa de app/ e só usa outra feature pelo index.ts dela (ex.: import { useUnits } from '@/features/scheduling')."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/campaigns/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/app/**", "@/features/*/**", "!@/features/campaigns/**"],
+                    "message": "Uma feature não importa de app/ e só usa outra feature pelo index.ts dela (ex.: import { useUnits } from '@/features/scheduling')."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/eligibility/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/app/**", "@/features/*/**", "!@/features/eligibility/**"],
+                    "message": "Uma feature não importa de app/ e só usa outra feature pelo index.ts dela (ex.: import { useUnits } from '@/features/scheduling')."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/scheduling/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/app/**", "@/features/*/**", "!@/features/scheduling/**"],
+                    "message": "Uma feature não importa de app/ e só usa outra feature pelo index.ts dela (ex.: import { useUnits } from '@/features/scheduling')."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
