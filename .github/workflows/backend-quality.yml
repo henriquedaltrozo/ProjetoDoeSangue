@@ -1,0 +1,67 @@
+name: backend-quality
+
+# Verificações que valem para o backend inteiro (não para um serviço só):
+# - lint (Biome), regras de arquitetura (scripts/check-boundaries.mjs) e sincronia entre o que o código
+#   importa e o que cada package.json declara (scripts/check-deps.mjs);
+# - testes de integração dos repositórios contra um Postgres real.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-quality.yml'
+  pull_request:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-quality.yml'
+
+jobs:
+  lint-boundaries:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      # A versão do pnpm vem do campo "packageManager" de backend/package.json.
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: backend/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: backend/pnpm-lock.yaml
+      # Só as ferramentas da raiz (Biome); os scripts check:* são Node puro, sem dependências.
+      - run: pnpm install --frozen-lockfile --filter .
+      - run: pnpm run lint
+      - run: pnpm run check:boundaries
+      - run: pnpm run check:deps
+
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: backend/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: backend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      # Cada teste cria um banco descartável (tests/support/shared/test-database.ts) e aplica as
+      # migrations de produção; o padrão de conexão é localhost:5432 postgres/postgres.
+      - run: pnpm run test:integration

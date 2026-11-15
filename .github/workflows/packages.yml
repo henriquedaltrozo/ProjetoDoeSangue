@@ -1,0 +1,46 @@
+name: shared
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/shared/**'
+      - 'backend/tests/unit/shared/**'
+      - 'backend/tests/integration/shared/**'
+      - 'backend/tests/support/shared/**'
+      - 'backend/tsconfig.base.json'
+      - 'backend/package.json'
+      - 'backend/pnpm-lock.yaml'
+      - 'backend/pnpm-workspace.yaml'
+      - '.github/workflows/packages.yml'
+  pull_request:
+    paths:
+      - 'backend/shared/**'
+      - 'backend/tests/unit/shared/**'
+      - 'backend/tests/integration/shared/**'
+      - 'backend/tests/support/shared/**'
+      - 'backend/tsconfig.base.json'
+      - 'backend/package.json'
+      - 'backend/pnpm-lock.yaml'
+      - 'backend/pnpm-workspace.yaml'
+      - '.github/workflows/packages.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend/shared
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: backend/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: backend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile --filter @doesangue/shared --filter .
+      - run: pnpm exec tsc --noEmit -p .
+      - run: pnpm exec jest
