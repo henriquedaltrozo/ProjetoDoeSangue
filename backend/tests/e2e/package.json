@@ -1,0 +1,14 @@
+{
+  "name": "doesangue-e2e",
+  "private": true,
+  "scripts": {
+    "test": "jest --runInBand --forceExit"
+  },
+  "dependencies": {
+    "axios": "catalog:",
+    "pg": "catalog:"
+  },
+  "devDependencies": {
+    "@types/pg": "catalog:"
+  }
+}

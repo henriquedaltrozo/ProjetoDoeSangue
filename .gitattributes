@@ -1,0 +1,16 @@
+# Quebra de linha LF em todos os arquivos de texto, em qualquer sistema operacional.
+# Sem isto, o Git no Windows (core.autocrlf=true) devolve os arquivos com CRLF no checkout, e o
+# formatador do Biome (frontend e backend) passa a acusar erro em todos eles. Scripts .sh com CRLF
+# também quebram dentro dos containers Linux.
+* text=auto eol=lf
+
+# Arquivos binários: nunca converter quebra de linha.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.pdf binary

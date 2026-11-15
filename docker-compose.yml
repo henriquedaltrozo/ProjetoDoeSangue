@@ -1,0 +1,307 @@
+# Nome do projeto no Compose: prefixo dos containers, da rede e das imagens (doesangue-postgres-1,
+# doesangue-auth-service...). Fixo aqui para não depender do nome da pasta do repositório.
+name: doesangue
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+      AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD:-auth_svc}
+      ELIGIBILITY_DB_PASSWORD: ${ELIGIBILITY_DB_PASSWORD:-eligibility_svc}
+      SCHEDULING_DB_PASSWORD: ${SCHEDULING_DB_PASSWORD:-scheduling_svc}
+      NOTIFICATION_DB_PASSWORD: ${NOTIFICATION_DB_PASSWORD:-notification_svc}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      # Cria um banco e um usuário por microsserviço (auth_db/auth_svc, ...)
+      # - roda uma única vez, na primeira inicialização do volume.
+      - ./infra/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
+    ports:
+      # Só na própria máquina (127.0.0.1): fora dela, o único acesso é pelo gateway.
+      - '127.0.0.1:5432:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    # Persistência em disco (AOF, gravado a cada segundo): a fila de e-mails guarda jobs agendados
+    # para semanas depois (lembrete 24 h antes, pedido de confirmação 48 h antes). Sem isto, recriar
+    # o container (ex.: docker compose down/up) apagaria todos eles sem aviso.
+    command: ['redis-server', '--appendonly', 'yes', '--appendfsync', 'everysec']
+    volumes:
+      - redis-data:/data
+    ports:
+      # Só na própria máquina (127.0.0.1): fora dela, o único acesso é pelo gateway.
+      - '127.0.0.1:6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Caixa de e-mail de desenvolvimento: recebe por SMTP (porta 1025, só na rede do Compose) tudo o
+  # que o sistema envia e mostra em http://localhost:8025. É o destino padrão enquanto SMTP_HOST não
+  # aponta para um provedor real (ver .env.example). Nada sai para a internet.
+  mailpit:
+    image: axllent/mailpit:v1.20
+    ports:
+      # Só na própria máquina (127.0.0.1).
+      - '127.0.0.1:8025:8025'
+
+  auth-service:
+    build:
+      context: ./backend
+      dockerfile: services/auth/Dockerfile
+    environment:
+      NODE_ENV: production
+      # Só para rodar localmente com os segredos de exemplo abaixo (o serviço avisa no log).
+      # Num ambiente real, defina segredos de verdade e remova esta linha: sem ela, o serviço não sobe.
+      ALLOW_INSECURE_DEFAULT_SECRETS: ${ALLOW_INSECURE_DEFAULT_SECRETS:-true}
+      AUTH_SERVICE_PORT: 3001
+      JWT_SECRET: ${JWT_SECRET:-troque-este-segredo-em-producao}
+      JWT_ACCESS_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: auth_svc
+      DB_PASSWORD: ${AUTH_DB_PASSWORD:-auth_svc}
+      DB_DATABASE: auth_db
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      ELIGIBILITY_SERVICE_URL: http://eligibility-service:3002
+      SCHEDULING_SERVICE_URL: http://scheduling-service:3003
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-troque-esta-chave-interna-em-producao}
+      # O auth-service só olha SMTP_HOST para saber se há envio de e-mail (quem envia é o
+      # notification-service, pela fila `notifications`). Com envio, o link de redefinição de senha
+      # vai só por e-mail; sem, aparece no log. Padrão: o Mailpit acima.
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-DoeSangue <no-reply@doesangue.local>}
+      # Base do front, usada para montar o link de redefinição de senha
+      # enviado por e-mail - ver front's docker-compose entry (porta 5173).
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+      CORS_ORIGINS: ${CORS_ORIGINS:-${FRONTEND_URL:-http://localhost:5173}}
+      # Sem ADMIN_SETUP_TOKEN o primeiro admin não pode ser criado.
+      ADMIN_SETUP_TOKEN: ${ADMIN_SETUP_TOKEN:-}
+      # Cookie do refresh token: Secure só com HTTPS (em http://localhost deixe false).
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      COOKIE_SAMESITE: ${COOKIE_SAMESITE:-strict}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      # Só na própria máquina (127.0.0.1): fora dela, o único acesso é pelo gateway.
+      - '127.0.0.1:3001:3001'
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3001/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  eligibility-service:
+    build:
+      context: ./backend
+      dockerfile: services/eligibility/Dockerfile
+    environment:
+      NODE_ENV: production
+      # Só para rodar localmente com os segredos de exemplo abaixo (o serviço avisa no log).
+      # Num ambiente real, defina segredos de verdade e remova esta linha: sem ela, o serviço não sobe.
+      ALLOW_INSECURE_DEFAULT_SECRETS: ${ALLOW_INSECURE_DEFAULT_SECRETS:-true}
+      ELIGIBILITY_SERVICE_PORT: 3002
+      JWT_SECRET: ${JWT_SECRET:-troque-este-segredo-em-producao}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: eligibility_svc
+      DB_PASSWORD: ${ELIGIBILITY_DB_PASSWORD:-eligibility_svc}
+      DB_DATABASE: eligibility_db
+      # Redis: revogação dos tokens de acesso (conta desativada/excluída, senha trocada) e a fila de
+      # e-mails (aviso diário de "você já pode doar", às 8h de Brasília).
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-troque-esta-chave-interna-em-producao}
+      # O aviso diário de "já pode doar" pergunta ao scheduling quem já tem agendamento.
+      SCHEDULING_SERVICE_URL: http://scheduling-service:3003
+      # false desliga o aviso diário de "já pode doar".
+      ELIGIBLE_AGAIN_JOB_ENABLED: ${ELIGIBLE_AGAIN_JOB_ENABLED:-true}
+      DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY:-troque-esta-chave-de-32-bytes-em-producao}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      # Só na própria máquina (127.0.0.1): fora dela, o único acesso é pelo gateway.
+      - '127.0.0.1:3002:3002'
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3002/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  scheduling-service:
+    build:
+      context: ./backend
+      dockerfile: services/scheduling/Dockerfile
+    environment:
+      NODE_ENV: production
+      # Só para rodar localmente com os segredos de exemplo abaixo (o serviço avisa no log).
+      # Num ambiente real, defina segredos de verdade e remova esta linha: sem ela, o serviço não sobe.
+      ALLOW_INSECURE_DEFAULT_SECRETS: ${ALLOW_INSECURE_DEFAULT_SECRETS:-true}
+      SCHEDULING_SERVICE_PORT: 3003
+      JWT_SECRET: ${JWT_SECRET:-troque-este-segredo-em-producao}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: scheduling_svc
+      DB_PASSWORD: ${SCHEDULING_DB_PASSWORD:-scheduling_svc}
+      DB_DATABASE: scheduling_db
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      ELIGIBILITY_SERVICE_URL: http://eligibility-service:3002
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-troque-esta-chave-interna-em-producao}
+      # Base do front, usada para montar o link de confirmação de presença
+      # enviado por e-mail (ver ConfirmacaoTokenService).
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      # Antes era `service_started` ("processo iniciou"): com health checks
+      # reais (ver eligibility-service acima), dá pra esperar de verdade o
+      # eligibility-service estar respondendo, não só ter subido.
+      eligibility-service:
+        condition: service_healthy
+    ports:
+      # Só na própria máquina (127.0.0.1): fora dela, o único acesso é pelo gateway.
+      - '127.0.0.1:3003:3003'
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3003/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  notification-service:
+    build:
+      context: ./backend
+      dockerfile: services/notification/Dockerfile
+    environment:
+      NODE_ENV: production
+      # Só para rodar localmente com os segredos de exemplo abaixo (o serviço avisa no log).
+      # Num ambiente real, defina segredos de verdade e remova esta linha: sem ela, o serviço não sobe.
+      ALLOW_INSECURE_DEFAULT_SECRETS: ${ALLOW_INSECURE_DEFAULT_SECRETS:-true}
+      NOTIFICATION_SERVICE_PORT: 3004
+      # JWT: a tela de acompanhamento dos e-mails (admin) chama este serviço pelo gateway.
+      JWT_SECRET: ${JWT_SECRET:-troque-este-segredo-em-producao}
+      # Segredo do webhook do provedor de e-mail (devoluções e spam). Vazio = webhook desligado.
+      MAIL_WEBHOOK_SECRET: ${MAIL_WEBHOOK_SECRET:-}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: notification_svc
+      DB_PASSWORD: ${NOTIFICATION_DB_PASSWORD:-notification_svc}
+      DB_DATABASE: notification_db
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      # Envio de e-mail por SMTP (qualquer provedor: Brevo, SendGrid, SES, Gmail...) - ver
+      # backend/services/notification/src/infrastructure/mail/nodemailer-mail-sender.ts.
+      # Padrão: o Mailpit acima (http://localhost:8025). Para envio real, defina SMTP_HOST,
+      # SMTP_PORT, SMTP_USER, SMTP_PASSWORD e MAIL_FROM no .env (ver .env.example).
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-DoeSangue <no-reply@doesangue.local>}
+      # Máximo de e-mails por segundo (limite do provedor).
+      MAIL_RATE_PER_SECOND: ${MAIL_RATE_PER_SECOND:-5}
+      # Base do front, para os links dos e-mails (agendar, meus agendamentos, perfil, descadastro).
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+      # URL pública da API (o gateway): o botão "cancelar inscrição" do Gmail/Outlook chama ela direto.
+      PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:3000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    # notification-service continua sendo majoritariamente um worker BullMQ
+    # (não tem rota de negócio e não é alcançável pelo gateway - ver
+    # arquitetura) mas agora expõe uma porta só para /health (ver
+    # docs/05-observability.md), daí o healthcheck abaixo.
+    ports:
+      # Só na própria máquina (127.0.0.1): fora dela, o único acesso é pelo gateway.
+      - '127.0.0.1:3004:3004'
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3004/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  gateway:
+    build:
+      context: ./backend
+      dockerfile: services/gateway/Dockerfile
+    environment:
+      NODE_ENV: production
+      # Só para rodar localmente com os segredos de exemplo abaixo (o serviço avisa no log).
+      # Num ambiente real, defina segredos de verdade e remova esta linha: sem ela, o serviço não sobe.
+      ALLOW_INSECURE_DEFAULT_SECRETS: ${ALLOW_INSECURE_DEFAULT_SECRETS:-true}
+      GATEWAY_PORT: 3000
+      CORS_ORIGINS: ${CORS_ORIGINS:-${FRONTEND_URL:-http://localhost:5173}}
+      AUTH_SERVICE_URL: http://auth-service:3001
+      ELIGIBILITY_SERVICE_URL: http://eligibility-service:3002
+      SCHEDULING_SERVICE_URL: http://scheduling-service:3003
+      NOTIFICATION_SERVICE_URL: http://notification-service:3004
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      eligibility-service:
+        condition: service_healthy
+      scheduling-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+    ports:
+      - '3000:3000'
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3000/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  front:
+    build:
+      context: ./frontend
+      args:
+        # Embutido no bundle em build time (Vite só expõe VITE_* nesse
+        # momento, não em runtime) - localhost:3000 porque quem chama essa
+        # URL é o navegador do usuário, fora da rede interna do Compose,
+        # batendo na porta do gateway já mapeada para o host logo acima.
+        VITE_API_URL: http://localhost:3000
+    depends_on:
+      - gateway
+    ports:
+      - '5173:80'
+
+volumes:
+  postgres-data:
+    # Volume criado quando o projeto ainda se chamava "projetotcc" (nome da pasta): mantido para
+    # não perder o banco já existente. Para começar com um banco novo e nome padrão
+    # (doesangue_postgres-data), remova esta linha.
+    name: projetotcc_postgres-data
+  redis-data:

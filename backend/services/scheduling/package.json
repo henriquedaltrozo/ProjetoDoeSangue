@@ -1,0 +1,45 @@
+{
+  "name": "@doesangue/scheduling-service",
+  "version": "0.1.0",
+  "description": "Unidades de coleta, campanhas e agendamentos",
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "nest build",
+    "start": "nest start --watch --entryFile services/scheduling/src/main",
+    "start:prod": "node dist/services/scheduling/src/main.js",
+    "test": "jest",
+    "test:integration": "jest --roots ../../tests/integration/scheduling --runInBand --forceExit",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@nestjs/axios": "catalog:",
+    "@nestjs/bullmq": "catalog:",
+    "@nestjs/common": "catalog:",
+    "@nestjs/config": "catalog:",
+    "@nestjs/core": "catalog:",
+    "@nestjs/jwt": "catalog:",
+    "@nestjs/passport": "catalog:",
+    "@nestjs/platform-express": "catalog:",
+    "@nestjs/swagger": "catalog:",
+    "@nestjs/terminus": "catalog:",
+    "@nestjs/typeorm": "catalog:",
+    "axios": "catalog:",
+    "bullmq": "catalog:",
+    "class-transformer": "catalog:",
+    "class-validator": "catalog:",
+    "helmet": "catalog:",
+    "ioredis": "catalog:",
+    "passport": "catalog:",
+    "passport-jwt": "catalog:",
+    "pg": "catalog:",
+    "reflect-metadata": "catalog:",
+    "rxjs": "catalog:",
+    "swagger-ui-express": "catalog:",
+    "typeorm": "catalog:"
+  },
+  "devDependencies": {
+    "@types/express": "catalog:",
+    "@types/passport-jwt": "catalog:"
+  }
+}

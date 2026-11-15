@@ -1,0 +1,10 @@
+export * from './appointment.repository';
+export * from './availability-cache.port';
+export * from './campaign.repository';
+export * from './confirmation-token.port';
+export * from './eligibility.gateway';
+export * from './notification.publisher';
+export * from './outbox.repository';
+export * from './collection-unit.repository';
+export * from './unit-of-work.port';
+export { CLOCK, type Clock, LOGGER, type LoggerPort } from '@shared/application/ports';

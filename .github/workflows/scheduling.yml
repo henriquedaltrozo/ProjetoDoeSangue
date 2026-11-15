@@ -1,0 +1,59 @@
+name: scheduling
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/services/scheduling/**'
+      - 'backend/tests/unit/scheduling/**'
+      - 'backend/tests/integration/scheduling/**'
+      - 'backend/tests/support/scheduling/**'
+      - 'backend/shared/**'
+      - 'backend/tests/support/shared/**'
+      - 'backend/tsconfig.base.json'
+      - 'backend/package.json'
+      - 'backend/pnpm-lock.yaml'
+      - 'backend/pnpm-workspace.yaml'
+      - '.github/workflows/scheduling.yml'
+  pull_request:
+    paths:
+      - 'backend/services/scheduling/**'
+      - 'backend/tests/unit/scheduling/**'
+      - 'backend/tests/integration/scheduling/**'
+      - 'backend/tests/support/scheduling/**'
+      - 'backend/shared/**'
+      - 'backend/tests/support/shared/**'
+      - 'backend/tsconfig.base.json'
+      - 'backend/package.json'
+      - 'backend/pnpm-lock.yaml'
+      - 'backend/pnpm-workspace.yaml'
+      - '.github/workflows/scheduling.yml'
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend/services/scheduling
+    steps:
+      - uses: actions/checkout@v4
+      # A versão do pnpm vem do campo "packageManager" de backend/package.json.
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: backend/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: backend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile --filter @doesangue/scheduling-service --filter .
+      - run: pnpm exec tsc --noEmit -p .
+      - run: pnpm exec jest --passWithNoTests
+      - run: pnpm exec nest build
+
+  docker:
+    needs: build-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f backend/services/scheduling/Dockerfile -t doesangue-scheduling:${{ github.sha }} backend

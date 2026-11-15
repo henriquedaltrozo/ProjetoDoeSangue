@@ -1,0 +1,48 @@
+{
+  "name": "@doesangue/auth-service",
+  "version": "0.1.0",
+  "description": "Usuários, login, JWT e recuperação de senha",
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "nest build",
+    "start": "nest start --watch --entryFile services/auth/src/main",
+    "start:prod": "node dist/services/auth/src/main.js",
+    "test": "jest",
+    "test:integration": "jest --roots ../../tests/integration/auth --runInBand --forceExit",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@nestjs/axios": "catalog:",
+    "@nestjs/bullmq": "catalog:",
+    "@nestjs/common": "catalog:",
+    "@nestjs/config": "catalog:",
+    "@nestjs/core": "catalog:",
+    "@nestjs/jwt": "catalog:",
+    "@nestjs/passport": "catalog:",
+    "@nestjs/platform-express": "catalog:",
+    "@nestjs/swagger": "catalog:",
+    "@nestjs/terminus": "catalog:",
+    "@nestjs/throttler": "catalog:",
+    "@nestjs/typeorm": "catalog:",
+    "axios": "catalog:",
+    "bcrypt": "catalog:",
+    "bullmq": "catalog:",
+    "class-transformer": "catalog:",
+    "class-validator": "catalog:",
+    "helmet": "catalog:",
+    "ioredis": "catalog:",
+    "passport": "catalog:",
+    "passport-jwt": "catalog:",
+    "pg": "catalog:",
+    "reflect-metadata": "catalog:",
+    "rxjs": "catalog:",
+    "swagger-ui-express": "catalog:",
+    "typeorm": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "catalog:",
+    "@types/express": "catalog:",
+    "@types/passport-jwt": "catalog:"
+  }
+}

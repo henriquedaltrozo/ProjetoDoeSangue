@@ -1,0 +1,33 @@
+# Stack descartável para o teste ponta a ponta (frontend/e2e), por cima do docker-compose.yml:
+#
+#   docker compose stop                                   # a stack normal usa as mesmas portas
+#   docker compose -f docker-compose.yml -f docker-compose.e2e.yml up -d --build
+#   cd frontend && E2E_BASE_URL=http://localhost:5173 E2E_SETUP_TOKEN=e2e-setup-token npm run e2e
+#   docker compose -f docker-compose.yml -f docker-compose.e2e.yml down -v   # apaga só os dados do e2e
+#
+# Projeto e volumes próprios (o banco do dia a dia não é tocado) e e-mails sempre no Mailpit
+# (http://localhost:8025), mesmo que o .env aponte para um SMTP real.
+name: doesangue-e2e
+
+x-mailpit-smtp: &mailpit-smtp
+  SMTP_HOST: mailpit
+  SMTP_PORT: '1025'
+  SMTP_SECURE: 'false'
+  SMTP_USER: ''
+  SMTP_PASSWORD: ''
+  MAIL_FROM: DoeSangue <no-reply@doesangue.local>
+
+services:
+  auth-service:
+    environment:
+      <<: *mailpit-smtp
+      ADMIN_SETUP_TOKEN: e2e-setup-token
+  notification-service:
+    environment:
+      <<: *mailpit-smtp
+
+volumes:
+  postgres-data:
+    name: doesangue-e2e_postgres-data
+  redis-data:
+    name: doesangue-e2e_redis-data

@@ -1,0 +1,5 @@
+export enum EligibilityResult {
+  ELIGIBLE = 'ELIGIBLE',
+  TEMPORARY_UNFIT = 'TEMPORARY_UNFIT',
+  PERMANENT_UNFIT = 'PERMANENT_UNFIT',
+}
