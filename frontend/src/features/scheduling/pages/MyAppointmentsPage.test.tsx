@@ -17,7 +17,9 @@ const appointment: AppointmentDto = {
   donorId: 'donor-1',
   collectionUnitId: 'unit-removida',
   campaignId: null,
-  dateTime: '2026-11-10T12:00:00.000Z',
+  // Sempre no futuro (relativo a quando o teste roda): um horário fixo vira passado com o tempo, e a
+  // página passa a mostrar o agendamento no histórico recolhido.
+  dateTime: new Date(Date.now() + 3 * 24 * 3_600_000).toISOString(),
   status: 'ELIGIBILITY_CONFIRMED',
   assessmentEligibilityId: 'assessment-1',
   eligibilityNotices: [],
