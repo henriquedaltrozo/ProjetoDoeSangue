@@ -1,0 +1,11 @@
+/** Ciclo de vida de um agendamento (ver transições em domain/appointment). */
+export enum AppointmentStatus {
+  SCHEDULED = 'SCHEDULED',
+  ELIGIBILITY_CONFIRMED = 'ELIGIBILITY_CONFIRMED',
+  ELIGIBILITY_DENIED = 'ELIGIBILITY_DENIED',
+  CONFIRMED = 'CONFIRMED',
+  CHECKIN_PERFORMED = 'CHECKIN_PERFORMED',
+  COMPLETED = 'COMPLETED',
+  CANCELED = 'CANCELED',
+  NO_SHOW = 'NO_SHOW',
+}

@@ -1,0 +1,32 @@
+{
+  "name": "doesangue",
+  "private": true,
+  "description": "Sistema de Agendamento de Doação de Sangue - microsserviços em monorepo pnpm (ferramentas da raiz: lint e verificação de fronteiras)",
+  "scripts": {
+    "lint": "biome check services shared tests",
+    "lint:fix": "biome check --write services shared tests",
+    "check:boundaries": "node scripts/check-boundaries.mjs",
+    "check:deps": "node scripts/check-deps.mjs",
+    "seed:scenarios": "node scripts/seed-scenarios.mjs",
+    "install:all": "pnpm install --frozen-lockfile",
+    "test:all": "pnpm --filter ./shared --filter \"./services/*\" --workspace-concurrency=1 run typecheck && pnpm --filter ./shared --filter \"./services/*\" --workspace-concurrency=1 run test",
+    "test:integration": "pnpm --filter \"./services/*\" --workspace-concurrency=1 --if-present run test:integration",
+    "build:all": "pnpm --filter \"./services/*\" --if-present run build"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@nestjs/cli": "catalog:",
+    "@nestjs/schematics": "catalog:",
+    "@types/jest": "catalog:",
+    "@types/node": "catalog:",
+    "jest": "catalog:",
+    "source-map-support": "catalog:",
+    "ts-jest": "catalog:",
+    "typescript": "catalog:"
+  },
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=10"
+  }
+}

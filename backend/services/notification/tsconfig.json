@@ -1,0 +1,52 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": "../..",
+    "outDir": "./dist",
+    "incremental": true,
+    "paths": {
+      "@src/*": [
+        "src/*"
+      ],
+      "@test/support/*": [
+        "../../tests/support/notification/*"
+      ],
+      "@shared/contracts": [
+        "../../shared/src/contracts"
+      ],
+      "@shared/bootstrap": [
+        "../../shared/src/bootstrap"
+      ],
+      "@shared/testing/*": [
+        "../../tests/support/shared/*"
+      ],
+      "@shared/domain/*": [
+        "../../shared/src/domain/*"
+      ],
+      "@shared/application/*": [
+        "../../shared/src/application/*"
+      ],
+      "@shared/infrastructure/*": [
+        "../../shared/src/infrastructure/*"
+      ],
+      "@shared/presentation/*": [
+        "../../shared/src/presentation/*"
+      ],
+      "*": [
+        "node_modules/*",
+        "node_modules/@types/*"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "../../tests/unit/notification/**/*.ts",
+    "../../tests/integration/notification/**/*.ts",
+    "../../tests/support/notification/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

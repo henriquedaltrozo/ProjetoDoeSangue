@@ -1,0 +1,35 @@
+{
+  "name": "@doesangue/gateway-service",
+  "version": "0.1.0",
+  "description": "Reverse proxy - única porta exposta ao frontend",
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "nest build",
+    "start": "nest start --watch --entryFile services/gateway/src/main",
+    "start:prod": "node dist/services/gateway/src/main.js",
+    "test": "jest",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@nestjs/axios": "catalog:",
+    "@nestjs/common": "catalog:",
+    "@nestjs/config": "catalog:",
+    "@nestjs/core": "catalog:",
+    "@nestjs/platform-express": "catalog:",
+    "@nestjs/swagger": "catalog:",
+    "@nestjs/terminus": "catalog:",
+    "axios": "catalog:",
+    "class-transformer": "catalog:",
+    "class-validator": "catalog:",
+    "helmet": "catalog:",
+    "http-proxy-middleware": "catalog:",
+    "ioredis": "catalog:",
+    "reflect-metadata": "catalog:",
+    "rxjs": "catalog:",
+    "swagger-ui-express": "catalog:"
+  },
+  "devDependencies": {
+    "@types/express": "catalog:"
+  }
+}

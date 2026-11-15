@@ -1,0 +1,41 @@
+{
+  "name": "@doesangue/shared",
+  "version": "0.1.0",
+  "description": "Código compartilhado entre serviços (shared/src): testes e checagem de tipos",
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {
+    "test": "jest",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@nestjs/axios": "catalog:",
+    "@nestjs/bullmq": "catalog:",
+    "@nestjs/common": "catalog:",
+    "@nestjs/config": "catalog:",
+    "@nestjs/core": "catalog:",
+    "@nestjs/jwt": "catalog:",
+    "@nestjs/passport": "catalog:",
+    "@nestjs/platform-express": "catalog:",
+    "@nestjs/swagger": "catalog:",
+    "@nestjs/terminus": "catalog:",
+    "@nestjs/typeorm": "catalog:",
+    "axios": "catalog:",
+    "bullmq": "catalog:",
+    "class-transformer": "catalog:",
+    "class-validator": "catalog:",
+    "helmet": "catalog:",
+    "ioredis": "catalog:",
+    "passport": "catalog:",
+    "passport-jwt": "catalog:",
+    "pg": "catalog:",
+    "reflect-metadata": "catalog:",
+    "rxjs": "catalog:",
+    "swagger-ui-express": "catalog:",
+    "typeorm": "catalog:"
+  },
+  "devDependencies": {
+    "@types/express": "catalog:",
+    "@types/passport-jwt": "catalog:"
+  }
+}

@@ -1,0 +1,68 @@
+import { Donor } from '../../../domain/entities/donor';
+import { DonorOrmEntity } from '../orm-entities/donor.orm-entity';
+
+export const DonorMapper = {
+  toDomain(orm: DonorOrmEntity): Donor {
+    return new Donor({
+      id: orm.id,
+      userId: orm.userId,
+      completeName: orm.completeName,
+      cpf: orm.cpf,
+      birthDate: orm.birthDate,
+      sex: orm.sex,
+      phone: orm.phone ?? null,
+      email: orm.email,
+      weightKg: Number(orm.weightKg),
+      bloodType: orm.bloodType ?? null,
+      lastDonationAt: orm.lastDonationAt ?? null,
+      donationDates: orm.donationDates ?? [],
+      permanentUnfit: orm.permanentUnfit,
+      permanentUnfitnessReason: orm.permanentUnfitnessReason ?? null,
+      active: orm.active,
+      createdAt: orm.createdAt,
+      updatedAt: orm.updatedAt,
+      guardianName: orm.guardianName ?? null,
+      guardianConsentDeclared: orm.guardianConsentDeclared ?? false,
+      donatedBefore60: orm.donatedBefore60 ?? null,
+      regularDonorDeclared: orm.regularDonorDeclared ?? false,
+      medicalClearanceAt: orm.medicalClearanceAt ?? null,
+      medicalClearanceBy: orm.medicalClearanceBy ?? null,
+      version: orm.version,
+      healthDataConsentAt: orm.healthDataConsentAt ?? null,
+      receiveAlerts: orm.receiveAlerts ?? true,
+      emailVerified: orm.emailVerified ?? true,
+    });
+  },
+
+  toOrm(donor: Donor): DonorOrmEntity {
+    return Object.assign(new DonorOrmEntity(), {
+      id: donor.id,
+      userId: donor.userId,
+      completeName: donor.completeName,
+      cpf: donor.cpf,
+      birthDate: donor.birthDate,
+      sex: donor.sex,
+      phone: donor.phone,
+      email: donor.email,
+      weightKg: donor.weightKg,
+      bloodType: donor.bloodType,
+      lastDonationAt: donor.lastDonationAt,
+      donationDates: donor.donationDates,
+      permanentUnfit: donor.permanentUnfit,
+      permanentUnfitnessReason: donor.permanentUnfitnessReason,
+      active: donor.active,
+      createdAt: donor.createdAt,
+      updatedAt: donor.updatedAt,
+      guardianName: donor.guardianName,
+      guardianConsentDeclared: donor.guardianConsentDeclared,
+      donatedBefore60: donor.donatedBefore60,
+      regularDonorDeclared: donor.regularDonorDeclared,
+      medicalClearanceAt: donor.medicalClearanceAt,
+      medicalClearanceBy: donor.medicalClearanceBy,
+      version: donor.version,
+      healthDataConsentAt: donor.healthDataConsentAt,
+      receiveAlerts: donor.receiveAlerts,
+      emailVerified: donor.emailVerified,
+    });
+  },
+};

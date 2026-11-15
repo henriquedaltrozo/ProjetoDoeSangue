@@ -1,0 +1,52 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": "..",
+    "outDir": "./dist",
+    "incremental": true,
+    "paths": {
+      "@src/*": [
+        "src/*"
+      ],
+      "@test/support/*": [
+        "../tests/support/shared/*"
+      ],
+      "@shared/contracts": [
+        "src/contracts"
+      ],
+      "@shared/bootstrap": [
+        "src/bootstrap"
+      ],
+      "@shared/testing/*": [
+        "../tests/support/shared/*"
+      ],
+      "@shared/domain/*": [
+        "src/domain/*"
+      ],
+      "@shared/application/*": [
+        "src/application/*"
+      ],
+      "@shared/infrastructure/*": [
+        "src/infrastructure/*"
+      ],
+      "@shared/presentation/*": [
+        "src/presentation/*"
+      ],
+      "*": [
+        "node_modules/*",
+        "node_modules/@types/*"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "../tests/unit/shared/**/*.ts",
+    "../tests/integration/shared/**/*.ts",
+    "../tests/support/shared/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}
