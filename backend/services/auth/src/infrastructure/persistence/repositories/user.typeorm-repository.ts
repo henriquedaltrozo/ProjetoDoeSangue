@@ -1,12 +1,12 @@
 import { Role } from '@shared/domain/enums';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, IsNull, LessThan, Raw, Repository } from 'typeorm';
+import { FindOptionsWhere, IsNull, LessThan, Repository } from 'typeorm';
 import { UserRepository } from '../../../application/ports/user.repository';
-import { User, normalizeEmail } from '../../../domain/entities/user';
+import { User } from '../../../domain/entities/user';
 import { UserMapper } from '../mappers/user.mapper';
 import { UserOrmEntity } from '../orm-entities/user.orm-entity';
-import { isUniqueViolation } from '@shared/infrastructure/persistence';
+import { emailIndex, isUniqueViolation } from '@shared/infrastructure/persistence';
 import { ConflictError } from '../../../application/errors';
 
 @Injectable()
@@ -23,13 +23,11 @@ export class UserTypeOrmRepository implements UserRepository {
   }
 
   /**
-   * Sem diferenciar maiúsculas: contas gravadas antes da normalização (ex.: "Maria@X.com") continuam
-   * sendo encontradas por "maria@x.com".
+   * O e-mail fica cifrado: a busca compara o índice cego do e-mail normalizado (sem diferenciar
+   * maiúsculas nem espaços nas pontas), então "Maria@X.com" encontra a conta de "maria@x.com".
    */
   findByEmail(email: string): Promise<User | null> {
-    return this.one({
-      email: Raw((column) => `LOWER(${column}) = :email`, { email: normalizeEmail(email) }),
-    });
+    return this.one({ emailIndex: emailIndex(email) });
   }
 
   findAdminById(id: string): Promise<User | null> {

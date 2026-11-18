@@ -89,6 +89,9 @@ describe('presenters do eligibility (contrato da API)', () => {
         'medicalClearanceAt',
         'medicalClearanceValidUntil',
         'healthDataConsentAt',
+        'consentTermVersion',
+        'healthDataLegalBasis',
+        'personalDataLegalBasis',
         'receiveAlerts',
       ].sort(),
     );

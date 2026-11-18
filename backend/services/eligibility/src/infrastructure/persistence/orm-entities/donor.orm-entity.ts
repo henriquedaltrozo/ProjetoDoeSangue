@@ -19,30 +19,40 @@ export class DonorOrmEntity {
   @Column({ type: 'uuid', unique: true })
   userId: string;
 
-  @Column({ type: 'varchar', length: 150 })
+  /** Dado identificante: cifrado em repouso (a busca por nome usa `nameIndexes`). */
+  @Column({ type: 'text', transformer: encryptedColumn<string>() })
   completeName: string;
 
   /**
-   * Não cifrado (ao contrário dos campos de saúde abaixo): a busca
-   * administrativa de doadores (`FindDonorsUseCase`) faz `ILIKE
-   * '%...%'` neste campo, e criptografia (mesmo determinística) impede
-   * correspondência parcial sobre o texto cifrado. Ainda assim é um dado
-   * sensível - fica coberto pelo log de auditoria de acesso ao perfil.
+   * Índices cegos (HMAC) das palavras do nome, para a busca do painel admin por palavra inteira, sem
+   * acento nem maiúsculas. Mantido junto com `completeName` (ver DonorMapper e o repositório).
    */
-  @Column({ type: 'varchar', length: 11, unique: true })
+  @Index('IDX_donors_name_indexes', { synchronize: false })
+  @Column({ type: 'text', array: true, default: () => "'{}'" })
+  nameIndexes: string[];
+
+  /**
+   * Cifrado em repouso (IV aleatório). A unicidade e a busca exata usam `cpfIndex`, o índice cego
+   * (HMAC) do CPF: a cifra com IV aleatório não permite comparar valores iguais.
+   */
+  @Column({ type: 'text', transformer: encryptedColumn<string>() })
   cpf: string;
 
-  @Column({ type: 'date' })
+  @Column({ type: 'varchar', length: 64, unique: true })
+  cpfIndex: string;
+
+  /** AAAA-MM-DD, cifrado em repouso (com o CPF e o nome, identifica a pessoa). */
+  @Column({ type: 'text', transformer: encryptedColumn<string>() })
   birthDate: string;
 
   @Column({ type: 'enum', enum: Sex })
   sex: Sex;
 
   /** Opcional: informado pelo doador no perfil, se quiser. */
-  @Column({ type: 'varchar', length: 20, nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: encryptedColumn<string>() })
   phone: string | null;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: 'text', transformer: encryptedColumn<string>() })
   email: string;
 
   /**
@@ -117,6 +127,18 @@ export class DonorOrmEntity {
   /** [LGPD] Quando o doador consentiu com o uso dos dados de saúde (null em cadastros antigos). */
   @Column({ type: 'timestamptz', nullable: true })
   healthDataConsentAt: Date | null;
+
+  /** [LGPD] Versão do termo de consentimento aceito no cadastro (null em cadastros antigos). */
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  consentTermVersion: string | null;
+
+  /** [LGPD] Base legal dos dados de saúde (art. 11) aplicada no cadastro. */
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  healthDataLegalBasis: string | null;
+
+  /** [LGPD] Base legal dos demais dados pessoais (art. 7º) aplicada no cadastro. */
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  personalDataLegalBasis: string | null;
 
   /** Aceita avisos de campanhas e de "já pode doar" por e-mail (desmarcado no perfil). */
   @Column({ type: 'boolean', default: true })

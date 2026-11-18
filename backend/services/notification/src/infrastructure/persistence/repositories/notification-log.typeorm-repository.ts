@@ -1,3 +1,4 @@
+import { emailIndex, encryptValue } from '@shared/infrastructure/persistence';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, LessThan, Repository } from 'typeorm';
@@ -27,13 +28,15 @@ export class NotificationLogTypeOrmRepository implements NotificationLogReposito
     const query = this.repo
       .createQueryBuilder()
       .update(NotificationLogOrmEntity)
-      // O motivo da falha também sai: erro de SMTP costuma trazer o endereço do destinatário.
+      // O motivo da falha também sai: erro de SMTP costuma trazer o endereço do destinatário. As
+      // colunas são cifradas, então o marcador entra já cifrado (expressão SQL, sem o transformador).
       .set({
-        recipient: marker,
-        message: marker,
-        error: () => 'CASE WHEN "error" IS NULL THEN NULL ELSE :marker END',
+        recipient: () => ':sealedMarker',
+        recipientIndex: () => 'NULL',
+        message: () => ':sealedMarker',
+        error: () => 'CASE WHEN "error" IS NULL THEN NULL ELSE :sealedMarker END',
       })
-      .setParameter('marker', marker)
+      .setParameter('sealedMarker', encryptValue(marker))
       .where('"userId" = :userId', { userId });
     if (donorId) {
       query.orWhere('"donorId" = :donorId', { donorId });
@@ -66,6 +69,8 @@ export class NotificationLogTypeOrmRepository implements NotificationLogReposito
   }
 
   wasSent(jobId: string, recipient: string): Promise<boolean> {
-    return this.repo.exists({ where: { jobId, recipient, status: NotificationStatus.SENT } });
+    return this.repo.exists({
+      where: { jobId, recipientIndex: emailIndex(recipient), status: NotificationStatus.SENT },
+    });
   }
 }

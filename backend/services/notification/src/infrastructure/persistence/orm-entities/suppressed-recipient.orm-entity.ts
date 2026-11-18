@@ -1,10 +1,15 @@
+import { encryptedColumn } from '@shared/infrastructure/persistence';
 import { Column, CreateDateColumn, Entity, PrimaryColumn } from 'typeorm';
 
 /** Endereços bloqueados: devolveram e-mail ou marcaram como spam (ver SuppressionList). */
 @Entity({ name: 'suppressed_recipients', schema: 'notification' })
 export class SuppressedRecipientOrmEntity {
-  /** Sempre em minúsculas. */
-  @PrimaryColumn({ type: 'varchar', length: 255 })
+  /** Índice cego (HMAC) do e-mail em minúsculas: a consulta e a remoção comparam por ele. */
+  @PrimaryColumn({ type: 'varchar', length: 64 })
+  emailIndex: string;
+
+  /** Em minúsculas, cifrado em repouso (a lista do painel mostra o endereço). */
+  @Column({ type: 'text', transformer: encryptedColumn<string>() })
   email: string;
 
   @Column({ type: 'varchar', length: 60 })

@@ -1,3 +1,4 @@
+import { CONSENT_TERM_VERSION } from '@shared/domain/consent/consent-term';
 import {
   AssessmentSource,
   BloodType,
@@ -8,7 +9,13 @@ import {
   AssessmentNotice,
 } from '@shared/domain/enums';
 import { UnfitnessCategory } from '@src/domain/enums';
-import { encryptDeterministicLegacy } from '@shared/infrastructure/persistence';
+import {
+  cpfIndex,
+  encryptDeterministicLegacy,
+  nameWordIndexes,
+} from '@shared/infrastructure/persistence';
+import { ConsentTermAndLegalBasis1763200000000 } from '@src/infrastructure/persistence/migrations/1763200000000-consent-term-and-legal-basis';
+import { EncryptDonorIdentity1763100000000 } from '@src/infrastructure/persistence/migrations/1763100000000-encrypt-donor-identity';
 import { ReencryptBloodType1762100000000 } from '@src/infrastructure/persistence/migrations/1762100000000-reencrypt-blood-type';
 import {
   createTestDatabase,
@@ -94,19 +101,34 @@ describe('repositórios de eligibility (Postgres)', () => {
       expect((await donors.findById(donor.id))?.lastDonationAt).toBe('2026-09-01');
     });
 
-    it('cria e devolve os valores em texto puro, mas guarda os dados de saúde cifrados', async () => {
-      const donor = await newDonor();
+    it('cria e devolve os valores em texto puro, mas guarda os dados pessoais e de saúde cifrados', async () => {
+      const donor = await newDonor({ name: 'José da Silva', cpf: '52998224725' });
 
       const loaded = await donors.findById(donor.id);
       expect(loaded?.weightKg).toBe(62.5);
+      expect(loaded?.completeName).toBe('José da Silva');
+      expect(loaded?.cpf).toBe('52998224725');
+      expect(loaded?.birthDate).toBe('1995-05-05');
+      expect(loaded?.email).toBe(`maria${seq}@example.com`);
       expect(loaded?.healthDataConsentAt).toBeInstanceOf(Date);
+      // [LGPD] A versão do termo e as bases legais gravadas no cadastro voltam na leitura.
+      expect(loaded?.consentTermVersion).toBe(CONSENT_TERM_VERSION);
+      expect(loaded?.healthDataLegalBasis).toBe('LGPD_ART_11_I');
+      expect(loaded?.personalDataLegalBasis).toBe('LGPD_ART_7_I');
 
-      const [raw] = await db.dataSource.query(
-        'SELECT "weightKg" FROM eligibility.donors WHERE id = $1',
-        [donor.id],
-      );
-      expect(String(raw.weightKg)).toMatch(/^gcm:/);
-      expect(String(raw.weightKg)).not.toContain('62.5');
+      const [raw] = await db.dataSource.query('SELECT * FROM eligibility.donors WHERE id = $1', [
+        donor.id,
+      ]);
+      for (const column of ['weightKg', 'completeName', 'cpf', 'birthDate', 'email']) {
+        expect(String(raw[column])).toMatch(/^gcm:/);
+      }
+      // Nada identificante sobra em texto claro na linha (nem nos índices cegos).
+      const row = JSON.stringify(raw);
+      for (const clear of ['62.5', 'José', 'Silva', '52998224725', '1995-05-05', 'example.com']) {
+        expect(row).not.toContain(clear);
+      }
+      expect(raw.cpfIndex).toBe(cpfIndex('52998224725'));
+      expect(raw.nameIndexes).toEqual(nameWordIndexes('José da Silva'));
     });
 
     it('persiste atualização de contato e tipo sanguíneo (cifrado) e a anonimização', async () => {
@@ -128,28 +150,38 @@ describe('repositórios de eligibility (Postgres)', () => {
       expect(await donors.listAcceptingAlerts()).toHaveLength(0);
     });
 
-    it('encontra por CPF ou userId e garante unicidade do CPF', async () => {
+    it('encontra por CPF (com ou sem máscara) ou userId e garante unicidade do CPF', async () => {
       const donor = await newDonor({ cpf: '99988877766' });
 
       expect((await donors.findByCpfOrUserId('99988877766', NOBODY))?.id).toBe(donor.id);
+      expect((await donors.findByCpfOrUserId('999.888.777-66', NOBODY))?.id).toBe(donor.id);
       expect((await donors.findByUserId(donor.userId))?.id).toBe(donor.id);
+      // A cifra tem IV aleatório: quem garante a unicidade é o índice cego do CPF.
       await expect(newDonor({ cpf: '99988877766' })).rejects.toBeInstanceOf(ConflictError);
     });
 
-    it('busca por nome ou CPF e trata % e _ como texto, não como curinga', async () => {
+    it('busca por CPF completo ou por palavras inteiras do nome (cifrados), mais recentes primeiro', async () => {
       await newDonor({ name: 'Ana Souza', cpf: '11111111111' });
       await newDonor({ name: 'Bruno 100% Lima', cpf: '22222222222' });
-      await newDonor({ name: 'Carla_Dias', cpf: '33333333333' });
+      await newDonor({ name: 'José da Silva', cpf: '33333333333' });
 
       const names = async (search: string | undefined, limit = 10, offset = 0) =>
         (await donors.find(search, limit, offset)).items.map((d) => d.completeName);
+      // Palavra inteira, sem diferenciar acento nem maiúsculas; todas as palavras digitadas precisam constar.
       expect(await names('souza')).toEqual(['Ana Souza']);
-      expect(await names('22222')).toEqual(['Bruno 100% Lima']);
-      expect(await names('%')).toEqual(['Bruno 100% Lima']);
-      expect(await names('_')).toEqual(['Carla_Dias']);
+      expect(await names('JOSE')).toEqual(['José da Silva']);
+      expect(await names('silva jose')).toEqual(['José da Silva']);
+      expect(await names('silva ana')).toEqual([]);
+      // Pedaço de palavra não acha (a busca é por índice cego): só palavras inteiras.
+      expect(await names('sou')).toEqual([]);
+      expect(await names('%')).toEqual([]);
+      // CPF completo, com ou sem máscara; CPF parcial não acha.
+      expect(await names('222.222.222-22')).toEqual(['Bruno 100% Lima']);
+      expect(await names('22222222222')).toEqual(['Bruno 100% Lima']);
+      expect(await names('22222')).toEqual([]);
       // Paginação: a página traz só o pedaço pedido, e o total conta todos os encontrados.
-      expect(await names(undefined, 2)).toEqual(['Ana Souza', 'Bruno 100% Lima']);
-      expect(await names(undefined, 2, 2)).toEqual(['Carla_Dias']);
+      expect(await names(undefined, 2)).toEqual(['José da Silva', 'Bruno 100% Lima']);
+      expect(await names(undefined, 2, 2)).toEqual(['Ana Souza']);
 
       expect((await donors.find(undefined, 2)).total).toBe(3);
       // Doador anonimizado (conta excluída) sai da busca.
@@ -163,6 +195,71 @@ describe('repositórios de eligibility (Postgres)', () => {
 
   it('as migrations criam exatamente o schema das entidades', async () => {
     expect(await pendingSchemaChanges(db.dataSource)).toEqual([]);
+  });
+
+  describe('migration que cifra os dados identificantes', () => {
+    it('volta para o formato em claro (down) e cifra de novo (up) sem perder nem duplicar dados', async () => {
+      const donor = await newDonor({ name: 'José da Silva', cpf: '52998224725' });
+      const runner = db.dataSource.createQueryRunner();
+      try {
+        // down: o que estava cifrado volta em claro e o CPF volta a ser único em claro.
+        await new EncryptDonorIdentity1763100000000().down(runner);
+        const [legacy] = await db.dataSource.query(
+          'SELECT "completeName", cpf, "birthDate"::text AS "birthDate", email FROM eligibility.donors WHERE id = $1',
+          [donor.id],
+        );
+        expect(legacy).toEqual({
+          completeName: 'José da Silva',
+          cpf: '52998224725',
+          birthDate: '1995-05-05',
+          email: `maria${seq}@example.com`,
+        });
+
+        // up: cifra de novo, grava os índices cegos e o doador volta a ser achado pelo CPF e pelo nome.
+        await new EncryptDonorIdentity1763100000000().up(runner);
+      } finally {
+        await runner.release();
+      }
+      const [raw] = await db.dataSource.query('SELECT * FROM eligibility.donors WHERE id = $1', [
+        donor.id,
+      ]);
+      expect(String(raw.cpf)).toMatch(/^gcm:/);
+      expect(raw.cpfIndex).toBe(cpfIndex('52998224725'));
+      expect(raw.nameIndexes).toEqual(nameWordIndexes('José da Silva'));
+      expect((await donors.findByCpfOrUserId('52998224725', NOBODY))?.completeName).toBe(
+        'José da Silva',
+      );
+      expect((await donors.find('silva', 10)).items.map((d) => d.id)).toEqual([donor.id]);
+      expect(await pendingSchemaChanges(db.dataSource)).toEqual([]);
+    });
+  });
+
+  describe('migration da versão do termo e da base legal', () => {
+    it('remove as colunas (down) e as recria vazias (up), sem tocar no resto do cadastro', async () => {
+      const donor = await newDonor({ name: 'José da Silva', cpf: '52998224725' });
+      const runner = db.dataSource.createQueryRunner();
+      try {
+        await new ConsentTermAndLegalBasis1763200000000().down(runner);
+        const columns = await db.dataSource.query(
+          `SELECT column_name FROM information_schema.columns
+            WHERE table_schema = 'eligibility' AND table_name = 'donors'
+              AND column_name IN ('consentTermVersion', 'healthDataLegalBasis', 'personalDataLegalBasis')`,
+        );
+        expect(columns).toEqual([]);
+        await new ConsentTermAndLegalBasis1763200000000().up(runner);
+      } finally {
+        await runner.release();
+      }
+      const [raw] = await db.dataSource.query('SELECT * FROM eligibility.donors WHERE id = $1', [
+        donor.id,
+      ]);
+      // Cadastros anteriores à versão do termo ficam sem registro (não há como saber o que foi aceito).
+      expect(raw.consentTermVersion).toBeNull();
+      expect(raw.healthDataLegalBasis).toBeNull();
+      expect(raw.personalDataLegalBasis).toBeNull();
+      expect(String(raw.cpf)).toMatch(/^gcm:/);
+      expect(await pendingSchemaChanges(db.dataSource)).toEqual([]);
+    });
   });
 
   describe('migration do tipo sanguíneo (subchave do IV determinístico)', () => {

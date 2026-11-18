@@ -10,6 +10,8 @@ import { DropDonorQueryAssessments1762400000000 } from './1762400000000-drop-don
 import { DropDuplicateDonorIndexes1762700000000 } from './1762700000000-drop-duplicate-donor-indexes';
 import { DonorReceiveAlerts1762800000000 } from './1762800000000-donor-receive-alerts';
 import { DonorEmailVerified1763000000000 } from './1763000000000-donor-email-verified';
+import { ConsentTermAndLegalBasis1763200000000 } from './1763200000000-consent-term-and-legal-basis';
+import { EncryptDonorIdentity1763100000000 } from './1763100000000-encrypt-donor-identity';
 
 export const MIGRATIONS = [
   InitialSchema1759400000000,
@@ -24,4 +26,6 @@ export const MIGRATIONS = [
   DropDuplicateDonorIndexes1762700000000,
   DonorReceiveAlerts1762800000000,
   DonorEmailVerified1763000000000,
+  EncryptDonorIdentity1763100000000,
+  ConsentTermAndLegalBasis1763200000000,
 ];

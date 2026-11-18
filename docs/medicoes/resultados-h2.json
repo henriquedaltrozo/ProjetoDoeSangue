@@ -1,0 +1,66 @@
+{
+  "hipotese": "H2",
+  "executadoEm": "2026-11-18T04:52:13.803Z",
+  "casos": 57,
+  "aprovados": 57,
+  "acertoPercentual": 100,
+  "execucoes": [
+    {
+      "execucao": 1,
+      "casos": 57,
+      "aprovados": 57,
+      "acertoPercentual": 100
+    },
+    {
+      "execucao": 2,
+      "casos": 57,
+      "aprovados": 57,
+      "acertoPercentual": 100
+    },
+    {
+      "execucao": 3,
+      "casos": 57,
+      "aprovados": 57,
+      "acertoPercentual": 100
+    }
+  ],
+  "grupos": [
+    {
+      "grupo": "idade",
+      "casos": 21,
+      "aprovados": 21
+    },
+    {
+      "grupo": "idade, intervalo e limite anual no dia da doação agendada",
+      "casos": 7,
+      "aprovados": 7
+    },
+    {
+      "grupo": "peso mínimo (art. 40)",
+      "casos": 5,
+      "aprovados": 5
+    },
+    {
+      "grupo": "intervalo mínimo entre doações (art. 38, §1º)",
+      "casos": 9,
+      "aprovados": 9
+    },
+    {
+      "grupo": "máximo de doações em 12 meses (art. 38)",
+      "casos": 7,
+      "aprovados": 7
+    },
+    {
+      "grupo": "inaptidões e combinação de motivos",
+      "casos": 8,
+      "aprovados": 8
+    }
+  ],
+  "sustentada": true,
+  "suiteElegibilidade": {
+    "arquivos": 30,
+    "testes": 250,
+    "aprovados": 250,
+    "falhas": 0
+  }
+}

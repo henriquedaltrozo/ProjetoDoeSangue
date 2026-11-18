@@ -6,7 +6,10 @@ export class AccountNoticeOrmEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  /** Payload do job da fila (tipo, usuário, nome, e-mail, instante da mudança). */
+  /**
+   * Payload do job da fila (tipo, usuário, nome, e-mail, instante da mudança), cifrado por inteiro:
+   * `{ sealed: "gcm:..." }` (ver sealJson). Avisos gravados antes da cifra continuam legíveis.
+   */
   @Column({ type: 'jsonb' })
   payload: Record<string, unknown>;
 

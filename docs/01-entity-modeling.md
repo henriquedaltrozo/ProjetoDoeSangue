@@ -50,16 +50,17 @@ em `eligibility.donors` (ver seção 4).
 | Coluna           | Tipo                       | Observação                                              |
 | ----------------- | --------------------------- | ---------------------------------------------------------- |
 | `id`               | uuid (PK)                    |                                                              |
-| `email`             | varchar(255), único            |                                                              |
+| `email`             | text (cifrado 🔒)               | o e-mail único e a busca usam `emailIndex` |
+| `emailIndex`        | varchar(64), único             | HMAC-SHA-256 do e-mail normalizado (índice cego, seção 8.1) |
 | `passwordHash`       | varchar(255)                  | bcrypt                                                       |
 | `role`               | enum (`donor`, `admin`)        |                                                              |
-| `name`               | varchar(150)                  |                                                              |
+| `name`               | text (cifrado 🔒)               |                                                              |
 | `donorId`           | uuid, nullable                | referência lógica a `eligibility.donors.id`; `null` para admins |
 | `active`              | boolean, default `true`         |                                                              |
 | `loginFailures`          | int, default `0`                | falhas de login seguidas; zera no sucesso ou ao bloquear      |
 | `blockedUntil`          | timestamptz, nullable          | enquanto no futuro, o login responde 429 (bloqueio de 15 min após 5 falhas) |
 | `emailVerifiedAt`       | timestamptz, nullable          | quando o e-mail foi confirmado pelo link; nulo = não confirmado (o doador não agenda). Admins nascem confirmados |
-| `pendingEmail`          | varchar(255), nullable         | e-mail novo pedido em Meu perfil, à espera da confirmação pelo link; até lá, vale `email` |
+| `pendingEmail`          | text, nullable (cifrado 🔒)    | e-mail novo pedido em Meu perfil, à espera da confirmação pelo link; até lá, vale `email` |
 | `lastLoginAt`       | timestamptz, nullable          |                                                              |
 | `createdAt`/`updatedAt` | timestamptz                  |                                                              |
 
@@ -114,15 +115,20 @@ completas: ver `03-eligibility-rules.md`).
 | --------------------------- | ---------------------------- | -------------------------------------------------- |
 | `id`                         | uuid (PK)                      |                                                      |
 | `userId`                   | uuid, único                     | referência lógica a `auth.users.id`                |
-| `completeName`                 | varchar(150)                   |                                                      |
-| `cpf`                          | varchar(11), único               | só dígitos                                            |
-| `birthDate`                | date                            |                                                      |
+| `completeName`                 | text (cifrado 🔒)                |                                                      |
+| `nameIndexes`                  | text[] (GIN)                    | HMAC de cada palavra do nome, sem acento e em minúsculas (índice cego, seção 8.1) |
+| `cpf`                          | text (cifrado 🔒)                | só dígitos antes de cifrar                              |
+| `cpfIndex`                     | varchar(64), único               | HMAC-SHA-256 do CPF (índice cego); garante a unicidade e a busca exata |
+| `birthDate`                | text (cifrado 🔒)                | data ISO `AAAA-MM-DD` antes de cifrar                   |
 | `sex`                          | enum (`M`, `F`)                   |                                                      |
-| `phone`                        | varchar(20), nullable            | opcional: o doador pode informar no cadastro (só dígitos, DDD + número) ou depois, e altera ou apaga no perfil, via `PATCH /donors/:id`; vazio após a anonimização |
-| `email`                        | varchar                          | o e-mail de contato, copiado do cadastro da conta |
+| `phone`                        | text, nullable (cifrado 🔒)       | opcional: o doador pode informar no cadastro (só dígitos, DDD + número) ou depois, e altera ou apaga no perfil, via `PATCH /donors/:id`; vazio após a anonimização |
+| `email`                        | text (cifrado 🔒)                 | o e-mail de contato, copiado do cadastro da conta |
 | `weightKg`                         | varchar (cifrado 🔒)              | não editável após o cadastro (afeta elegibilidade)      |
 | `bloodType`                  | varchar, nullable (cifrado 🔒, determinístico) | opcional no cadastro ("se souber"); editável depois |
 | `healthDataConsentAt`        | timestamptz, nullable            | [LGPD] quando o doador consentiu com o uso dos dados de saúde; o cadastro só é aceito com o consentimento (nulo em cadastros anteriores a ele) |
+| `consentTermVersion`         | varchar(20), nullable            | [LGPD] versão do termo aceito no cadastro (texto em `10-termo-consentimento.md`); um cadastro que cita outra versão é recusado; nulo em cadastros anteriores |
+| `healthDataLegalBasis`       | varchar(20), nullable            | [LGPD] base legal dos dados de saúde: `LGPD_ART_11_I` (consentimento específico) |
+| `personalDataLegalBasis`     | varchar(20), nullable            | [LGPD] base legal dos demais dados pessoais: `LGPD_ART_7_I` (consentimento) |
 | `emailVerified`              | boolean, default `true`          | espelho da confirmação do e-mail no auth (`false` num cadastro novo até o link ser aberto): sem ela, o doador não recebe campanha nem "já pode doar" |
 | `receiveAlerts`              | boolean, default `true`          | aceita e-mails de campanhas urgentes e de "você já pode doar" (desmarcado em Meu perfil); os e-mails de agendamento e de segurança da conta saem sempre |
 | `lastDonationAt`                 | date, nullable                   | informado (opcional) no cadastro; atualizado internamente ao concluir uma doação |
@@ -146,9 +152,9 @@ A altura não é coletada: nenhuma regra a usava (o critério da Portaria é só
 princípio da minimização da LGPD um dado de saúde sem uso não deve ser coletado. A migration
 `1762200000000-health-consent-drop-height` removeu a coluna.
 
-🔒 = criptografado em repouso (ver seção 8.1). `cpf` permanece em texto plano de propósito: a busca
-administrativa (`DoadoresService#listar`) faz `ILIKE '%...%'` por CPF parcial, incompatível com
-coluna cifrada; fica coberto pelo log de auditoria (seção 4.4) em vez de criptografia.
+🔒 = criptografado em repouso (ver seção 8.1). A busca administrativa de doadores aceita o CPF completo
+(pelo `cpfIndex`) ou palavras inteiras do nome (por `nameIndexes`); não há busca por fragmento, pois o valor
+cifrado não pode ser comparado pelo banco. Cada consulta fica no log de auditoria (seção 4.4).
 
 ### 4.2 `temporary_unfitness`
 
@@ -370,10 +376,12 @@ esses dados, além do que já é padrão no projeto (bcrypt para senhas, hash SH
 
 ### 8.1 Criptografia em repouso
 
-`backend/infrastructure/shared/persistence/crypto/encrypted-column.transformer.ts` expõe `encryptedColumn(...)`, um
+`backend/shared/src/infrastructure/persistence/crypto/encrypted-column.transformer.ts` expõe `encryptedColumn(...)`, um
 `ValueTransformer` do TypeORM (AES-256-GCM, com etiqueta de autenticação: valor adulterado no banco falha na leitura) aplicado às colunas de saúde do `eligibility-service`:
-`donors.weightKg`, `donors.bloodType`, `donors.permanentUnfitnessReason`, `donors.guardianName`
-e `temporary_unfitness.reason` (ver seções 4.1/4.2). A chave vem de `DATA_ENCRYPTION_KEY` (32
+`donors.completeName`, `donors.cpf`, `donors.birthDate`, `donors.phone`, `donors.email`, `donors.weightKg`,
+`donors.bloodType`, `donors.permanentUnfitnessReason`, `donors.guardianName` e `temporary_unfitness.reason`
+(eligibility); `users.email`, `users.name` e `users.pendingEmail` (auth); `notification_logs.recipient`,
+`subject`, `message`, `error` e `suppressed_recipients.email` (notification). Ver seções 3.1, 4.1/4.2 e 6. A chave vem de `DATA_ENCRYPTION_KEY` (32
 bytes; ver `.env.example`), lida diretamente de `process.env` porque um `ValueTransformer` é
 instanciado fora do container de DI do Nest.
 
@@ -395,9 +403,26 @@ Duas variantes:
   produção real (onde uma coluna de índice cego separada seria preferível), suficiente para o
   escopo deste TCC.
 
-`cpf` continua em texto plano: a busca administrativa faz `ILIKE '%...%'` (substring), incompatível
-com qualquer criptografia (determinística inclusive, que só preserva igualdade exata) - fica
-protegido pelo log de auditoria (seção 8.3) em vez disso.
+### Índice cego e JSON selado
+
+Um valor cifrado com IV aleatório não pode ser consultado nem tornado único pelo banco. Para o CPF, o e-mail e as
+palavras do nome, a coluna cifrada ganha uma coluna auxiliar com o HMAC-SHA-256 do valor normalizado
+(`shared/.../crypto/blind-index.ts`), calculado com a subchave `doesangue:blind-index:v1`, derivada de
+`DATA_ENCRYPTION_KEY`, e com o propósito (`cpf`, `email`, `name-word`) misturado à entrada, para que o mesmo texto
+não produza o mesmo índice em colunas diferentes. A unicidade (`cpfIndex`, `emailIndex`) e a busca exata usam essas
+colunas. O nome é indexado por palavra (sem acento, em minúsculas, com 2 ou mais letras), e a busca compara palavras
+inteiras (`nameIndexes @> :palavras`). O índice revela quando dois registros têm o mesmo CPF, e-mail ou palavra, e
+um atacante com a chave pode testar valores candidatos; sem a chave, não.
+
+O corpo dos trabalhos da fila de notificações (BullMQ/Redis) e os avisos de conta pendentes (`account_notices.payload`)
+são cifrados por inteiro (`sealJson`, formato `{ "sealed": "gcm:..." }`) no serviço de origem e abertos só no
+consumidor (porta `JOB_PAYLOAD_OPENER`). Registros antigos, sem selo, ainda são lidos.
+
+Fora desta cifragem ficam, por decisão deste protótipo, as datas de doação, os resultados das avaliações de
+elegibilidade e o motivo de cancelamento. O disco, os backups e o tráfego dependem da infraestrutura, e a chave é lida
+do ambiente, sem KMS nem rotação.
+
+As migrations `1763100000000-encrypt-*` (uma por serviço) cifram os dados existentes, criam os índices e têm `down`.
 
 ### 8.2 Rate limiting no fluxo de redefinição de senha
 

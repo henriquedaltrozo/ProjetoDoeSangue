@@ -41,6 +41,7 @@ export class CreateDonorUseCase {
             lastDonationDate: dto.lastDonationDate,
             bloodType: dto.bloodType,
             healthDataConsent: dto.healthDataConsent,
+            consentTermVersion: dto.consentTermVersion,
             emailVerified: dto.emailVerified,
           },
           this.clock.now(),

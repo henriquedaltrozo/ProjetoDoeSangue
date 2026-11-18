@@ -6,7 +6,7 @@ este documento é um índice para navegação, não substitui o Swagger para det
 
 O frontend fala **só** com o gateway (`http://localhost:3000` por padrão), nunca diretamente com
 um serviço - o gateway apenas repassa a requisição para o serviço de destino, sem reescrever o
-path (tabela completa em `backend/infrastructure/gateway/proxy/proxy-routes.ts`):
+path (tabela completa em `backend/services/gateway/src/infrastructure/proxy/proxy-routes.ts`):
 
 | Prefixo            | Serviço de destino    |
 | -------------------- | ------------------------ |
@@ -33,7 +33,7 @@ path (tabela completa em `backend/infrastructure/gateway/proxy/proxy-routes.ts`)
 
 | Método e path        | Auth       | Descrição                                                          |
 | ----------------------- | ------------ | ---------------------------------------------------------------------- |
-| `POST /auth/register`     | público        | Cadastro de doador - cria `User` + `Donor` (via eligibility-service) e já retorna tokens. Pede as declarações exigidas pela idade, a última doação e o tipo sanguíneo (opcionais) e o consentimento para o uso dos dados de saúde (`healthDataConsent: true`, obrigatório - LGPD; ver `03-eligibility-rules.md`) |
+| `POST /auth/register`     | público        | Cadastro de doador - cria `User` + `Donor` (via eligibility-service) e já retorna tokens. Pede as declarações exigidas pela idade, a última doação e o tipo sanguíneo (opcionais) e o consentimento para o uso dos dados de saúde (`healthDataConsent: true`, obrigatório - LGPD; ver `03-eligibility-rules.md`). O campo opcional `consentTermVersion` informa a versão do termo exibida (ver `10-termo-consentimento.md`): se for omitido, vale a vigente, e se for outra, o cadastro é recusado (400). A versão do termo e a base legal ficam gravadas com o doador |
 | `POST /auth/admin`          | bootstrap      | Cadastro de admin - o primeiro exige o header `x-setup-token` (= `ADMIN_SETUP_TOKEN`); depois exige JWT admin. 10 req/15min por IP |
 | `POST /auth/login`            | público        | Retorna o access token no corpo e grava o refresh token em cookie httpOnly. 10 req/15min por IP; conta bloqueada 15 min após 5 senhas erradas seguidas (429) |
 | `POST /auth/refresh`            | cookie*       | Rotaciona o refresh token (*lido do cookie httpOnly `doesangue_rt`, sem corpo; a `Origin`, se houver, precisa estar em `CORS_ORIGINS`) |
@@ -63,7 +63,7 @@ não volta na resposta: o link fica só no log do auth-service.
 | -------------------------------------------- | ---------------- | ---------------------------------------------------------------------- |
 | `POST /donors`                               | interno            | Cria o `Donor` associado a um `User` recém-cadastrado                |
 | `GET /donors/me`                               | JWT                | Perfil do doador autenticado                                            |
-| `GET /donors`                                    | JWT admin          | Busca/lista doadores por nome ou CPF (parcial) - painel admin. Com `ids` (até 100, separados por vírgula), devolve esses doadores, ex.: os nomes da lista de agendamentos. Cada doador exibido entra na auditoria (`SEARCH`) |
+| `GET /donors`                                    | JWT admin          | Busca/lista doadores pelo CPF completo ou por palavras inteiras do nome (índice cego; não há busca por fragmento) - painel admin. Com `ids` (até 100, separados por vírgula), devolve esses doadores, ex.: os nomes da lista de agendamentos. Cada doador exibido entra na auditoria (`SEARCH`) |
 | `GET /donors/internal/contacts`                    | interno              | Contatos dos doadores ativos, aptos hoje e que aceitam avisos (`receiveAlerts`), opcionalmente de um tipo sanguíneo - usado para notificação de campanha |
 | `GET /donors/internal/:id/contact`                 | interno              | Nome, e-mail e `active` de um doador (404 se não existe) - usado pelo scheduling nos e-mails do agendamento |
 | `POST /donors/alerts/unsubscribe`                  | público (token)      | Desliga os avisos de campanha e de "já pode doar" do doador do link. Token na URL (`?token=`, botão de um clique do Gmail/Outlook) ou no corpo `{token}` (página `/unsubscribe`). `204`; `400` token inválido. 20 req / 15min por IP |

@@ -1,0 +1,147 @@
+[
+  {
+    "item": "Acesso sem autenticação ao perfil",
+    "res": "HTTP 401",
+    "ok": true
+  },
+  {
+    "item": "Doador B lê perfil do doador A",
+    "res": "HTTP 403",
+    "ok": true
+  },
+  {
+    "item": "Titular lê o próprio perfil",
+    "res": "HTTP 200",
+    "ok": true
+  },
+  {
+    "item": "Administrador lê o perfil",
+    "res": "HTTP 200",
+    "ok": true
+  },
+  {
+    "item": "Log de auditoria registra os acessos ao perfil",
+    "res": "HTTP 200; ações: VIEW,VIEW",
+    "ok": true
+  },
+  {
+    "item": "Titular não acessa o log de auditoria",
+    "res": "HTTP 403",
+    "ok": true
+  },
+  {
+    "item": "Titular corrige os próprios dados (telefone, tipo sanguíneo)",
+    "res": "HTTP 200; telefone=55911112222",
+    "ok": true
+  },
+  {
+    "item": "Outro doador tenta alterar dados do titular",
+    "res": "HTTP 403",
+    "ok": true
+  },
+  {
+    "item": "Minimização: a altura não é coletada nem guardada",
+    "res": "colunas sem heightCm: true",
+    "ok": true
+  },
+  {
+    "item": "Peso e tipo sanguíneo cifrados em repouso (AES-256-GCM)",
+    "res": "peso=gcm:0rY/zHhZOD4P+s…; tipo=gcm:uAQxDDz/…",
+    "ok": true
+  },
+  {
+    "item": "CPF, nome, nascimento, telefone e e-mail cifrados em repouso (AES-256-GCM)",
+    "res": "completeName=gcm:jl65…; cpf=gcm:HZYU…; birthDate=gcm:A7XH…; phone=gcm:667i…; email=gcm:lapR…; valores em claro na linha: 0",
+    "ok": true
+  },
+  {
+    "item": "Unicidade e busca do CPF por índice cego (HMAC), sem o CPF em claro",
+    "res": "cpfIndex=9629561eeefe…; contém o CPF: false",
+    "ok": true
+  },
+  {
+    "item": "CPF duplicado é recusado mesmo cifrado",
+    "res": "HTTP 409",
+    "ok": true
+  },
+  {
+    "item": "Busca administrativa acha o doador pelo CPF completo (índice cego)",
+    "res": "HTTP 200; encontrados: 1",
+    "ok": true
+  },
+  {
+    "item": "Busca administrativa acha o doador por palavra inteira do nome",
+    "res": "HTTP 200; encontrados: 2",
+    "ok": true
+  },
+  {
+    "item": "Pedaço de palavra não acha o doador (a busca por índice cego compara palavras inteiras)",
+    "res": "HTTP 200; encontrados: 0",
+    "ok": true
+  },
+  {
+    "item": "Base legal registrada no cadastro: art. 11, I (dados de saúde) e art. 7º, I (demais dados)",
+    "res": "saúde=LGPD_ART_11_I; demais dados=LGPD_ART_7_I",
+    "ok": true
+  },
+  {
+    "item": "Versão do termo de consentimento aceito, registrada no cadastro",
+    "res": "consentTermVersion=2026-11-18",
+    "ok": true
+  },
+  {
+    "item": "Cadastro com termo de consentimento de outra versão é recusado",
+    "res": "HTTP 400",
+    "ok": true
+  },
+  {
+    "item": "Nome do responsável legal (terceiro) cifrado em repouso",
+    "res": "HTTP 201; valor=gcm:vDwWdFEK…",
+    "ok": true
+  },
+  {
+    "item": "Cadastro sem consentimento para dados de saúde é recusado",
+    "res": "HTTP 400",
+    "ok": true
+  },
+  {
+    "item": "Cadastro com consentimento recusado (false) é recusado",
+    "res": "HTTP 400",
+    "ok": true
+  },
+  {
+    "item": "Consentimento registrado com data e hora no cadastro",
+    "res": "healthDataConsentAt=2026-11-18 04:51:14.409+00",
+    "ok": true
+  },
+  {
+    "item": "Portabilidade: titular exporta seus dados",
+    "res": "HTTP 200; chaves: donor,temporaryUnfitness,eligibilityAssessments",
+    "ok": true
+  },
+  {
+    "item": "Exportação por terceiro é negada",
+    "res": "HTTP 403",
+    "ok": true
+  },
+  {
+    "item": "Rota interna rejeita JWT sem chave interna",
+    "res": "HTTP 401",
+    "ok": true
+  },
+  {
+    "item": "Eliminação: anonimização do titular",
+    "res": "HTTP 204",
+    "ok": true
+  },
+  {
+    "item": "Dados identificantes descaracterizados após anonimização",
+    "res": "nome=Doador anonimizado; cpf=213ed27dcdc; e-mail=anon-882fe137-67fc-43f2-9d87-105a1b7e1570@anonymized.local",
+    "ok": true
+  },
+  {
+    "item": "Anonimização registrada no log de auditoria",
+    "res": "VIEW,ANONYMIZATION,EXPORT,SEARCH,SEARCH,UPDATE,VIEW,VIEW",
+    "ok": true
+  }
+]

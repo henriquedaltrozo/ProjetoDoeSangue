@@ -1,3 +1,4 @@
+import { openJson, sealJson } from '@shared/infrastructure/persistence';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -16,7 +17,8 @@ export class AccountNoticeTypeOrmRepository implements AccountNoticeOutbox {
   ) {}
 
   async add(payload: AccountNoticePayload): Promise<void> {
-    await this.repo.insert({ payload: { ...payload } });
+    // O corpo leva nome, e-mail e links com token: fica cifrado até o envio.
+    await this.repo.insert({ payload: { ...sealJson(payload) } });
   }
 
   async claimDue(limit: number, leaseUntil: Date): Promise<PendingAccountNotice[]> {
@@ -40,7 +42,11 @@ export class AccountNoticeTypeOrmRepository implements AccountNoticeOutbox {
       createdAt: Date;
     }>;
     return rows
-      .map((row) => ({ ...row, createdAt: new Date(row.createdAt) }))
+      .map((row) => ({
+        ...row,
+        payload: openJson<AccountNoticePayload>(row.payload),
+        createdAt: new Date(row.createdAt),
+      }))
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
   }
 

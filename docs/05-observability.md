@@ -2,7 +2,7 @@
 
 Este documento descreve os três pilares de observabilidade implementados no backend: correlation
 id entre serviços, health checks reais e logging estruturado. Os três vivem juntos numa lib
-compartilhada, `backend/infrastructure/shared/observability`, importada por todos os 5 serviços.
+compartilhada, `backend/shared/src/infrastructure/observability`, importada por todos os 5 serviços.
 
 ## 1. Correlation id (`x-request-id`)
 
@@ -11,7 +11,7 @@ eligibility-service, cada serviço logava isoladamente - não havia nada que ama
 entradas de log como sendo "a mesma requisição", tornando debugar um fluxo distribuído lento.
 
 Implementação: `createRequestLoggingMiddleware(nomeDoServico)`
-(`backend/infrastructure/shared/observability/request-logging.middleware.ts`) é um middleware **Express puro** (não um
+(`backend/shared/src/infrastructure/observability/request-logging.middleware.ts`) é um middleware **Express puro** (não um
 Interceptor do Nest), montado via `app.use(...)` logo no início de cada `main.ts` - inclusive no
 gateway, **antes** do loop que monta o reverse proxy. Ele:
 
@@ -61,7 +61,7 @@ tipo de condição; `scheduling-service`, por exemplo, só esperava o eligibilit
 iniciado", não "estar pronto"; `gateway` esperava os três só terem iniciado).
 
 `@nestjs/terminus` não tem indicador oficial para Redis (só Postgres/Mongo/etc). `RedisHealthIndicator`
-(`backend/infrastructure/shared/observability/redis-health.indicator.ts`) é um indicador próprio: abre uma conexão curta e
+(`backend/shared/src/infrastructure/observability/redis-health.indicator.ts`) é um indicador próprio: abre uma conexão curta e
 dedicada, faz `PING`, e sempre desconecta - mesmo padrão defensivo já usado pelo
 `RedisCacheService` do scheduling-service (conexão lazy, sem retry indefinido).
 
@@ -73,7 +73,7 @@ sem ser alcançável pelo gateway.
 
 ## 3. Logging estruturado
 
-`AppLogger` (`backend/infrastructure/shared/observability/app-logger.service.ts`) estende o `ConsoleLogger` do Nest e
+`AppLogger` (`backend/shared/src/infrastructure/observability/app-logger.service.ts`) estende o `ConsoleLogger` do Nest e
 emite uma linha JSON por evento, sempre com `timestamp`, `level`, `service` e (dentro de uma
 requisição) `requestId`:
 

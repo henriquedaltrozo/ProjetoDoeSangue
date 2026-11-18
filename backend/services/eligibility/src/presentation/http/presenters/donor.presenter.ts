@@ -28,6 +28,9 @@ export interface DonorResponse {
   medicalClearanceAt: string | null;
   medicalClearanceValidUntil: string | null;
   healthDataConsentAt: string | null;
+  consentTermVersion: string | null;
+  healthDataLegalBasis: string | null;
+  personalDataLegalBasis: string | null;
   receiveAlerts: boolean;
 }
 
@@ -66,6 +69,9 @@ export function toDonorResponse(donor: DonorOutput): DonorResponse {
     medicalClearanceAt: donor.medicalClearanceAt,
     medicalClearanceValidUntil: donor.medicalClearanceValidUntil,
     healthDataConsentAt: donor.healthDataConsentAt?.toISOString() ?? null,
+    consentTermVersion: donor.consentTermVersion,
+    healthDataLegalBasis: donor.healthDataLegalBasis,
+    personalDataLegalBasis: donor.personalDataLegalBasis,
     receiveAlerts: donor.receiveAlerts,
   };
 }

@@ -1,4 +1,5 @@
 import { NotificationJobType } from '@shared/domain/enums';
+import { encryptedColumn } from '@shared/infrastructure/persistence';
 import { NotificationChannel, NotificationStatus } from '../../../domain/enums';
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
@@ -9,7 +10,7 @@ import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 
  */
 @Entity({ name: 'sent_notifications', schema: 'notification' })
 // Consulta de cada envio (EmailNotifier.wasSent): sem índice, ficaria mais lenta a cada e-mail gravado.
-@Index(['jobId', 'recipient'])
+@Index(['jobId', 'recipientIndex'])
 export class NotificationLogOrmEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -33,19 +34,26 @@ export class NotificationLogOrmEntity {
   @Column({ type: 'enum', enum: NotificationChannel, default: NotificationChannel.EMAIL })
   channel: NotificationChannel;
 
-  @Column({ type: 'varchar', length: 255 })
+  /** Cifrado em repouso. A consulta de envio usa `recipientIndex` (índice cego do e-mail). */
+  @Column({ type: 'text', transformer: encryptedColumn<string>() })
   recipient: string;
 
-  @Column({ type: 'varchar', length: 255 })
+  /** Índice cego (HMAC) do e-mail do destinatário; nulo depois do apagamento dos dados pessoais. */
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  recipientIndex: string | null;
+
+  @Column({ type: 'text', transformer: encryptedColumn<string>() })
   subject: string;
 
-  @Column({ type: 'text' })
+  /** O texto leva o nome do destinatário: cifrado em repouso. */
+  @Column({ type: 'text', transformer: encryptedColumn<string>() })
   message: string;
 
   @Column({ type: 'enum', enum: NotificationStatus })
   status: NotificationStatus;
 
-  @Column({ type: 'text', nullable: true })
+  /** O motivo da falha pode trazer o endereço do destinatário: cifrado em repouso. */
+  @Column({ type: 'text', nullable: true, transformer: encryptedColumn<string>() })
   error: string | null;
 
   @Column({ type: 'varchar', length: 100, nullable: true })

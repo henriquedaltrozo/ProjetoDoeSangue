@@ -4,6 +4,7 @@ import {
 } from '@shared/application/messaging';
 import { NotificationJobType } from '@shared/domain/enums';
 import { DEFAULT_JOB_OPTIONS } from '@shared/infrastructure/messaging';
+import { sealJson } from '@shared/infrastructure/persistence';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import type { Queue } from 'bullmq';
@@ -19,7 +20,7 @@ export class NotificationQueuePublisher implements NotificationPublisher {
    * sem gerar um segundo e-mail. Os concluídos ficam alguns dias para valer a regra.
    */
   async enqueueEligibleAgain(payload: EligibleAgainJobPayload): Promise<void> {
-    await this.queue.add(NotificationJobType.ELIGIBLE_AGAIN, payload, {
+    await this.queue.add(NotificationJobType.ELIGIBLE_AGAIN, sealJson(payload), {
       ...DEFAULT_JOB_OPTIONS,
       jobId: `eligible-${payload.donorId}-${payload.eligibleSince}`,
       removeOnComplete: { age: 3 * 24 * 3600 },

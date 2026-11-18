@@ -1,0 +1,94 @@
+{
+  "hipotese": "H1",
+  "executadoEm": "2026-11-17T11:37:01.544Z",
+  "norma": "Portaria GM/MS nº 11.685, de 2 de julho de 2026 (Anexo IV-B da Portaria de Consolidação GM/MS nº 5/2017)",
+  "requisitos": 12,
+  "implementados": 10,
+  "parciais": 1,
+  "naoImplementados": 1,
+  "coberturaPercentual": 83.3,
+  "limiarPercentual": 80,
+  "sustentada": true,
+  "sensibilidade": {
+    "comExcecoesPorAvaliacaoMedica": {
+      "implementados": 11,
+      "total": 15,
+      "percentual": 73.3
+    }
+  },
+  "itens": [
+    {
+      "id": "R1",
+      "situacao": "implementado",
+      "motivo": "AGE_BELOW_MIN",
+      "testes": 4
+    },
+    {
+      "id": "R2",
+      "situacao": "implementado",
+      "motivo": "AGE_ABOVE_MAX",
+      "testes": 4
+    },
+    {
+      "id": "R3",
+      "situacao": "implementado",
+      "motivo": "AGE_ABOVE_MAX_FIRST_DONATION",
+      "testes": 9
+    },
+    {
+      "id": "R4",
+      "situacao": "implementado",
+      "motivo": "INSUFFICIENT_WEIGHT",
+      "testes": 6
+    },
+    {
+      "id": "R5",
+      "situacao": "implementado",
+      "motivo": "MIN_INTERVAL_NOT_FULFILLED",
+      "testes": 6
+    },
+    {
+      "id": "R6",
+      "situacao": "implementado",
+      "motivo": "MIN_INTERVAL_NOT_FULFILLED",
+      "testes": 4
+    },
+    {
+      "id": "R7",
+      "situacao": "implementado",
+      "motivo": "MAX_ANNUAL_DONATIONS_REACHED",
+      "testes": 5
+    },
+    {
+      "id": "R8",
+      "situacao": "implementado",
+      "motivo": "MAX_ANNUAL_DONATIONS_REACHED",
+      "testes": 3
+    },
+    {
+      "id": "R9",
+      "situacao": "implementado",
+      "motivo": "ACTIVE_TEMPORARY_UNFITNESS",
+      "testes": 4
+    },
+    {
+      "id": "R10",
+      "situacao": "implementado",
+      "motivo": "PERMANENT_UNFIT",
+      "testes": 1
+    },
+    {
+      "id": "R11",
+      "situacao": "parcial",
+      "motivo": "GUARDIAN_CONSENT_REQUIRED",
+      "testes": 5
+    },
+    {
+      "id": "R12",
+      "situacao": "nao_implementado",
+      "motivo": null,
+      "testes": 0
+    }
+  ],
+  "problemas": []
+}

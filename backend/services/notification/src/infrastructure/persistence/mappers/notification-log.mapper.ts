@@ -1,3 +1,4 @@
+import { emailIndex } from '@shared/infrastructure/persistence';
 import { NotificationLog } from '../../../domain/entities/notification-log';
 import { NotificationLogOrmEntity } from '../orm-entities/notification-log.orm-entity';
 
@@ -28,6 +29,7 @@ export const NotificationLogMapper = {
       type: log.type,
       channel: log.channel,
       recipient: log.recipient,
+      recipientIndex: emailIndex(log.recipient),
       subject: log.subject,
       message: log.message,
       status: log.status,

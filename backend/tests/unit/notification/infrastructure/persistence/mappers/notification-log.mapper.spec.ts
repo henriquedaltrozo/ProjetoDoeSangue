@@ -1,4 +1,5 @@
 import { NotificationJobType } from '@shared/domain/enums';
+import { emailIndex } from '@shared/infrastructure/persistence';
 import { NotificationChannel, NotificationStatus } from '@src/domain/enums';
 import { NotificationLog } from '@src/domain/entities/notification-log';
 import { NotificationLogOrmEntity } from '@src/infrastructure/persistence/orm-entities/notification-log.orm-entity';
@@ -24,6 +25,7 @@ describe('NotificationLogMapper', () => {
       type: NotificationJobType.RESET_PASSWORD,
       channel: NotificationChannel.EMAIL,
       recipient: 'a@example.com',
+      recipientIndex: emailIndex('a@example.com'),
       subject: 'A',
       message: 'M',
       status: NotificationStatus.FAILURE,

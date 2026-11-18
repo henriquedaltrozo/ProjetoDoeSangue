@@ -1,5 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Equals, IsBoolean, IsEnum, IsOptional, IsString, Length } from 'class-validator';
+import {
+  Equals,
+  IsBoolean,
+  IsEnum,
+  IsOptional,
+  IsString,
+  Length,
+  MaxLength,
+} from 'class-validator';
 import { BloodType } from '../../domain/enums';
 import { IsCalendarDate } from './is-calendar-date.decorator';
 
@@ -47,6 +55,16 @@ export class DonorRegistrationDeclarationsDto extends DonorDeclarationsDto {
     message: 'É preciso concordar com o uso dos seus dados de saúde para se cadastrar.',
   })
   healthDataConsent: boolean;
+
+  @ApiPropertyOptional({
+    example: '2026-11-18',
+    description:
+      '[LGPD] Versão do termo de consentimento exibida ao doador. Se omitida, vale a vigente; se for outra, o cadastro é recusado.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  consentTermVersion?: string;
 
   @ApiPropertyOptional({ enum: BloodType, description: 'Tipo sanguíneo, se o doador souber' })
   @IsOptional()

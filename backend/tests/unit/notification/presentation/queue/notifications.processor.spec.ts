@@ -1,6 +1,8 @@
 import { Logger } from '@nestjs/common';
 import { NotificationJobType } from '@shared/domain/enums';
 import { ERASE_PERSONAL_DATA_JOB } from '@shared/application/messaging';
+import { sealJson } from '@shared/infrastructure/persistence';
+import { SealedJobPayloadOpener } from '@src/infrastructure/queue/sealed-job-payload-opener';
 import type { DispatchNotificationUseCase } from '@src/application/use-cases/dispatch-notification.use-case';
 import type { ErasePersonalDataUseCase } from '@src/application/use-cases/erase-personal-data.use-case';
 import {
@@ -18,7 +20,11 @@ describe('mailRatePerSecond', () => {
 });
 
 describe('NotificationsProcessor: falha definitiva', () => {
-  const processor = new NotificationsProcessor({} as never, {} as never);
+  const processor = new NotificationsProcessor(
+    {} as never,
+    {} as never,
+    new SealedJobPayloadOpener(),
+  );
   const logged = () => jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
 
   it('loga ALERT só quando o job esgotou as tentativas', () => {
@@ -45,6 +51,7 @@ describe('NotificationsProcessor', () => {
     processor = new NotificationsProcessor(
       dispatch as unknown as DispatchNotificationUseCase,
       erase as unknown as ErasePersonalDataUseCase,
+      new SealedJobPayloadOpener(),
     );
   });
 
@@ -67,6 +74,17 @@ describe('NotificationsProcessor', () => {
       expect(dispatch.execute).toHaveBeenCalledWith({ type, donorId: 'd1' }, 'job-1');
     },
   );
+
+  it('abre o corpo cifrado do job antes de repassá-lo (nome, e-mail e links não ficam em claro no Redis)', async () => {
+    const payload = {
+      type: NotificationJobType.REMINDER_24H,
+      donorId: 'd1',
+      recipientEmail: 'ana@example.com',
+    };
+    const job = { name: payload.type, id: 'job-2', data: sealJson(payload) } as never;
+    await processor.process(job);
+    expect(dispatch.execute).toHaveBeenCalledWith(payload, 'job-2');
+  });
 
   it('ignora (sem lançar) um job de tipo desconhecido', async () => {
     const job = { name: 'TIPO_INEXISTENTE', id: 'job-x', data: {} } as never;
