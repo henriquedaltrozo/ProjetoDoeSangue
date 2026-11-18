@@ -1,0 +1,19 @@
+{
+  "descricao": "Etapas anteriores à coleta, na ordem dos documentos, no processo atual e no processo com o sistema (mesma lista de atividades). Manual: executada por uma pessoa da equipe ou pelo candidato em papel. Automática: executada pelo sistema. 'h1' lista os requisitos de rastreabilidade.json decididos no agendamento, antes da ida ao hemocentro. É uma inferência a partir de documentos públicos, não uma medição: não houve entrevista nem visita.",
+  "fontes": [
+    "Hemoba. Etapas da doação de sangue (folheto POPASCOM002.R0), referência hemoba2026",
+    "Cioffi e Mendrone Junior. Processos de trabalho de serviços de hemoterapia: hemocentro produtor (Fiocruz), referência cioffi"
+  ],
+  "etapas": [
+    { "id": "E1", "etapa": "orientar o candidato sobre o procedimento", "atual": "manual", "sistema": "manual" },
+    { "id": "E2", "etapa": "conferir documento oficial com foto", "atual": "manual", "sistema": "manual" },
+    { "id": "E3", "etapa": "registrar os dados cadastrais", "atual": "manual", "sistema": "automatica", "como": "autocadastro pelo doador" },
+    { "id": "E4", "etapa": "conferir a idade com a faixa permitida", "atual": "manual", "sistema": "automatica", "como": "avaliação no agendamento", "h1": ["R1", "R2", "R3", "R11"] },
+    { "id": "E5", "etapa": "pesar o candidato e conferir o peso mínimo", "atual": "manual", "sistema": "manual", "como": "o peso informado é conferido no agendamento, mas a pesagem continua na triagem", "h1": ["R4"] },
+    { "id": "E6", "etapa": "conferir o intervalo desde a última doação e o limite anual", "atual": "manual", "sistema": "automatica", "como": "avaliação no agendamento", "h1": ["R5", "R6", "R7", "R8"] },
+    { "id": "E7", "etapa": "consultar inaptidões registradas", "atual": "manual", "sistema": "automatica", "como": "avaliação no agendamento", "h1": ["R9", "R10"] },
+    { "id": "E8", "etapa": "aferir temperatura, pressão arterial e pulso", "atual": "manual", "sistema": "manual" },
+    { "id": "E9", "etapa": "aplicar o questionário clínico, decidir a aptidão e colher o termo de consentimento", "atual": "manual", "sistema": "manual" },
+    { "id": "E10", "etapa": "dosar hemoglobina ou hematócrito", "atual": "manual", "sistema": "manual" }
+  ]
+}

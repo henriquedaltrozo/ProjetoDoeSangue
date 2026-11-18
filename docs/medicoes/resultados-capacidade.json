@@ -1,0 +1,14 @@
+{
+  "hipotese": "H4 (integridade da capacidade)",
+  "executadoEm": "2026-11-18T03:20:43.600Z",
+  "capacidade": 5,
+  "requisicoesSimultaneas": 20,
+  "horario": "2026-11-18T14:00:00.000Z",
+  "statusHttp": {
+    "201": 5,
+    "409": 15
+  },
+  "aceitas": 5,
+  "recusadas": 15,
+  "sustentado": true
+}

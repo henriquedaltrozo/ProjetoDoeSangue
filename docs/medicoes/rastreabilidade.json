@@ -1,0 +1,192 @@
+{
+  "norma": "Portaria GM/MS nº 11.685, de 2 de julho de 2026 (Anexo IV-B da Portaria de Consolidação GM/MS nº 5/2017)",
+  "limiarCobertura": 80,
+  "descricao": "Universo de H1: critérios que podem ser decididos com dados informados pelo doador ou mantidos pelo serviço (arts. 38 a 40 e inaptidões registradas na triagem). Situação: implementado (o motor decide), parcial (o sistema só registra uma declaração e sinaliza a conferência presencial) ou nao_implementado (não há regra). O percentual conta apenas os implementados. Os testes são os títulos dos casos de assess-eligibility.norma.spec.ts; um caso pode exercitar mais de um requisito.",
+  "requisitos": [
+    {
+      "id": "R1",
+      "criterio": "Idade mínima de 16 anos",
+      "dispositivo": "art. 39, caput",
+      "motivo": "AGE_BELOW_MIN",
+      "situacao": "implementado",
+      "testes": [
+        "idade mínima (com consentimento do responsável): 15 anos e 364 dias (um dia antes de completar 16)",
+        "idade mínima (com consentimento do responsável): exatamente 16 anos hoje",
+        "idade mínima (com consentimento do responsável): 16 anos e 1 dia",
+        "quem tem 15 anos e agenda para depois dos 16 pode doar"
+      ]
+    },
+    {
+      "id": "R2",
+      "criterio": "Idade máxima de 69 anos, 11 meses e 29 dias",
+      "dispositivo": "art. 39, caput",
+      "motivo": "AGE_ABOVE_MAX",
+      "situacao": "implementado",
+      "testes": [
+        "idade máxima (doador de repetição, não regular): 69 anos, 11 meses e 29 dias (véspera dos 70 anos)",
+        "idade máxima (doador de repetição, não regular): exatamente 70 anos hoje",
+        "idade máxima (doador de repetição, não regular): 70 anos e 1 dia",
+        "quem tem 69 anos hoje e agenda para depois dos 70 doaria com 70"
+      ]
+    },
+    {
+      "id": "R3",
+      "criterio": "Primeira doação até 60 anos, 11 meses e 29 dias",
+      "dispositivo": "art. 39, § 3º",
+      "motivo": "AGE_ABOVE_MAX_FIRST_DONATION",
+      "situacao": "implementado",
+      "testes": [
+        "de 60 a 69 anos, sem doação antes dos 60: 59 anos, 11 meses e 29 dias (véspera dos 60 anos)",
+        "de 60 a 69 anos, sem doação antes dos 60: exatamente 60 anos hoje",
+        "de 60 a 69 anos, sem doação antes dos 60: 60 anos e 1 dia",
+        "de 60 a 69 anos pode doar quem declarou ter doado antes dos 60",
+        "de 60 a 69 anos pode doar quem tem doação registrada antes dos 60",
+        "uma doação conhecida feita depois dos 60 não prova doação antes dos 60",
+        "declarar que não doou antes dos 60 mantém a inaptidão",
+        "quem tem 59 anos, nunca doou e agenda para depois dos 60 cai na regra dos 60",
+        "com um motivo sem prazo (60 anos sem doação antes), não promete próxima data"
+      ]
+    },
+    {
+      "id": "R4",
+      "criterio": "Peso mínimo de 50 kg",
+      "dispositivo": "art. 40, caput",
+      "motivo": "INSUFFICIENT_WEIGHT",
+      "situacao": "implementado",
+      "testes": [
+        "peso de 49 kg",
+        "peso de 49.9 kg",
+        "peso de 50 kg",
+        "peso de 50.1 kg",
+        "peso de 70 kg",
+        "com um motivo sem prazo (peso abaixo do mínimo), não promete próxima data"
+      ]
+    },
+    {
+      "id": "R5",
+      "criterio": "Intervalo mínimo de 2 meses (homens)",
+      "dispositivo": "art. 38, § 1º",
+      "motivo": "MIN_INTERVAL_NOT_FULFILLED",
+      "situacao": "implementado",
+      "testes": [
+        "M: um dia antes de completar 2 meses (última doação 2026-08-03)",
+        "M: exatamente 2 meses (última doação 2026-08-02)",
+        "M: mais de 2 meses (última doação 2026-08-01)",
+        "F: homem liberado após 2 meses, mulher ainda não (mesma data) (última doação 2026-08-02)",
+        "M: doação hoje (última doação 2026-10-02)",
+        "meses curtos: doação em 31/12 libera o homem em 28/02"
+      ]
+    },
+    {
+      "id": "R6",
+      "criterio": "Intervalo mínimo de 3 meses (mulheres)",
+      "dispositivo": "art. 38, § 1º",
+      "motivo": "MIN_INTERVAL_NOT_FULFILLED",
+      "situacao": "implementado",
+      "testes": [
+        "F: um dia antes de completar 3 meses (última doação 2026-07-03)",
+        "F: exatamente 3 meses (última doação 2026-07-02)",
+        "F: mais de 3 meses (última doação 2026-07-01)",
+        "F: homem liberado após 2 meses, mulher ainda não (mesma data) (última doação 2026-08-02)"
+      ]
+    },
+    {
+      "id": "R7",
+      "criterio": "Máximo de 4 doações em 12 meses (homens)",
+      "dispositivo": "art. 38, caput",
+      "motivo": "MAX_ANNUAL_DONATIONS_REACHED",
+      "situacao": "implementado",
+      "testes": [
+        "M: 3 doações na janela",
+        "M: 4 doações na janela",
+        "M: 5 doações na janela (libera ao sair a segunda mais antiga)",
+        "a doação feita exatamente há 12 meses já saiu da janela; a de 12 meses menos um dia ainda conta",
+        "doador sem histórico detalhado conta a última doação (compatibilidade com dados anteriores)"
+      ]
+    },
+    {
+      "id": "R8",
+      "criterio": "Máximo de 3 doações em 12 meses (mulheres)",
+      "dispositivo": "art. 38, caput",
+      "motivo": "MAX_ANNUAL_DONATIONS_REACHED",
+      "situacao": "implementado",
+      "testes": [
+        "F: 2 doações na janela",
+        "F: 3 doações na janela",
+        "a doação feita exatamente há 12 meses já saiu da janela; a de 12 meses menos um dia ainda conta"
+      ]
+    },
+    {
+      "id": "R9",
+      "criterio": "Inaptidão temporária registrada",
+      "dispositivo": "triagem clínica",
+      "motivo": "ACTIVE_TEMPORARY_UNFITNESS",
+      "situacao": "implementado",
+      "testes": [
+        "inaptidão temporária vale até a data prevista (inclusive): a próxima data é o dia seguinte",
+        "o encerramento antecipado decide a próxima data",
+        "inaptidão em aberto: não há próxima data",
+        "acumula motivos e informa como próxima data a mais distante"
+      ]
+    },
+    {
+      "id": "R10",
+      "criterio": "Inaptidão definitiva registrada",
+      "dispositivo": "triagem clínica",
+      "motivo": "PERMANENT_UNFIT",
+      "situacao": "implementado",
+      "testes": [
+        "inaptidão permanente encerra a avaliação"
+      ]
+    },
+    {
+      "id": "R11",
+      "criterio": "Consentimento do responsável a cada doação (menores de 18 anos)",
+      "dispositivo": "art. 39, §§ 1º e 2º",
+      "motivo": "GUARDIAN_CONSENT_REQUIRED",
+      "situacao": "parcial",
+      "observacao": "o motor exige o responsável informado e a declaração de que o termo será levado; o aviso acompanha o agendamento, mas a conferência do documento é presencial",
+      "testes": [
+        "menores de 18: 16 anos, sem o responsável informado",
+        "menores de 18: 17 anos, responsável informado mas termo não confirmado",
+        "menores de 18: 18 anos hoje: não precisa mais do responsável",
+        "menor apto recebe o aviso para levar o termo assinado",
+        "com um motivo sem prazo (menor sem o termo), não promete próxima data"
+      ]
+    },
+    {
+      "id": "R12",
+      "criterio": "Perda de peso inexplicável superior a 10% em 3 meses",
+      "dispositivo": "art. 40, § 2º",
+      "motivo": null,
+      "situacao": "nao_implementado",
+      "observacao": "depende de informação clínica",
+      "testes": []
+    }
+  ],
+  "excecoes": [
+    {
+      "dispositivo": "art. 39, § 4º",
+      "descricao": "idade fora da faixa por necessidade tecnicamente justificada",
+      "situacao": "nao_implementado"
+    },
+    {
+      "dispositivo": "art. 39, § 5º",
+      "descricao": "continuidade da doação acima dos 70 anos por doador de repetição, com avaliação médica registrada pela equipe (válida por 12 meses)",
+      "situacao": "implementado",
+      "motivo": "MEDICAL_CLEARANCE_REQUIRED",
+      "testes": [
+        "70 anos ou mais: doador regular sem avaliação médica",
+        "70 anos ou mais: doador regular com avaliação médica favorável",
+        "70 anos ou mais: avaliação de 12 meses atrás menos um dia: ainda vale hoje (último dia)",
+        "70 anos ou mais: avaliação de exatamente 12 meses atrás: venceu",
+        "a avaliação médica precisa valer no dia da doação"
+      ]
+    },
+    {
+      "dispositivo": "art. 40, § 1º",
+      "descricao": "aceitação de quem pesa menos de 50 kg, com ajuste do volume coletado",
+      "situacao": "nao_implementado"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "hipotese": "H3",
+  "executadoEm": "2026-11-17T11:37:16.572Z",
+  "etapas": 10,
+  "manuaisProcessoAtual": 10,
+  "manuaisComSistema": 6,
+  "etapasAutomatizadas": [
+    "E3",
+    "E4",
+    "E6",
+    "E7"
+  ],
+  "requisitosH1AntesDaIda": [
+    "R1",
+    "R2",
+    "R3",
+    "R4",
+    "R5",
+    "R6",
+    "R7",
+    "R8",
+    "R9",
+    "R10"
+  ],
+  "requisitosH1SemEtapa": [],
+  "referenciasInvalidas": [],
+  "menosEtapasManuais": true,
+  "verificacoesH1AntesDaIda": true,
+  "sustentada": true,
+  "natureza": "inferência a partir de documentos públicos (sem entrevista nem visita)"
+}

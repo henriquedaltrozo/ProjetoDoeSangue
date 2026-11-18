@@ -8,6 +8,8 @@
     "check:boundaries": "node scripts/check-boundaries.mjs",
     "check:deps": "node scripts/check-deps.mjs",
     "seed:scenarios": "node scripts/seed-scenarios.mjs",
+    "medir:norma": "node ../docs/medicoes/h1-cobertura.js --md && node ../docs/medicoes/h2-correcao.js --suite --md && node ../docs/medicoes/h3-etapas.js",
+    "medir:sintese": "node ../docs/medicoes/sintese.js",
     "install:all": "pnpm install --frozen-lockfile",
     "test:all": "pnpm --filter ./shared --filter \"./services/*\" --workspace-concurrency=1 run typecheck && pnpm --filter ./shared --filter \"./services/*\" --workspace-concurrency=1 run test",
     "test:integration": "pnpm --filter \"./services/*\" --workspace-concurrency=1 --if-present run test:integration",

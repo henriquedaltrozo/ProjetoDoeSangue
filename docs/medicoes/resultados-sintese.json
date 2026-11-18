@@ -1,0 +1,141 @@
+{
+  "geradoEm": "2026-11-18T04:52:18.088Z",
+  "hipoteses": [
+    {
+      "id": "H1",
+      "criterios": [
+        {
+          "nome": "cobertura da norma >= 80%",
+          "valor": "10 de 12 (83.3%); 1 parcial",
+          "ok": true
+        }
+      ],
+      "situacao": "sustentada"
+    },
+    {
+      "id": "H2",
+      "criterios": [
+        {
+          "nome": "100% de classificações corretas nos casos da norma",
+          "valor": "57 de 57 (3 execuções)",
+          "ok": true
+        }
+      ],
+      "situacao": "sustentada"
+    },
+    {
+      "id": "H3",
+      "criterios": [
+        {
+          "nome": "menos etapas manuais antes da coleta",
+          "valor": "10 para 6",
+          "ok": true
+        },
+        {
+          "nome": "verificações de H1 antes da ida ao hemocentro",
+          "valor": "todas",
+          "ok": true
+        }
+      ],
+      "situacao": "sustentada"
+    },
+    {
+      "id": "H4",
+      "criterios": [
+        {
+          "nome": "p95 da confirmação <= 1000 ms",
+          "valor": "592 ms",
+          "ok": true
+        },
+        {
+          "nome": "entrega de todas as mensagens em até 10 s",
+          "valor": "21,2 s",
+          "ok": false
+        },
+        {
+          "nome": "nenhuma mensagem perdida ou duplicada",
+          "valor": "0 perdas, 0 duplicadas",
+          "ok": true
+        },
+        {
+          "nome": "capacidade da unidade nunca excedida",
+          "valor": "5 aceitas e 15 recusadas para 5 vagas",
+          "ok": true
+        }
+      ],
+      "detalhe": {
+        "padrao": {
+          "configuracao": "limite padrão (5 e-mails/s)",
+          "execucoes": 6,
+          "p95ConfirmacaoMaxMs": 592,
+          "entregaMaxMs": 21221,
+          "mensagensEsperadas": 600,
+          "mensagensRecebidas": 600,
+          "duplicadas": 0,
+          "perdidas": 0,
+          "criterios": [
+            {
+              "nome": "p95 da confirmação <= 1000 ms",
+              "valor": "592 ms",
+              "ok": true
+            },
+            {
+              "nome": "entrega de todas as mensagens em até 10 s",
+              "valor": "21,2 s",
+              "ok": false
+            },
+            {
+              "nome": "nenhuma mensagem perdida ou duplicada",
+              "valor": "0 perdas, 0 duplicadas",
+              "ok": true
+            }
+          ]
+        },
+        "elevado": {
+          "configuracao": "limite elevado (50 e-mails/s)",
+          "execucoes": 6,
+          "p95ConfirmacaoMaxMs": 551,
+          "entregaMaxMs": 9651,
+          "mensagensEsperadas": 600,
+          "mensagensRecebidas": 600,
+          "duplicadas": 0,
+          "perdidas": 0,
+          "criterios": [
+            {
+              "nome": "p95 da confirmação <= 1000 ms",
+              "valor": "551 ms",
+              "ok": true
+            },
+            {
+              "nome": "entrega de todas as mensagens em até 10 s",
+              "valor": "9,7 s",
+              "ok": true
+            },
+            {
+              "nome": "nenhuma mensagem perdida ou duplicada",
+              "valor": "0 perdas, 0 duplicadas",
+              "ok": true
+            }
+          ]
+        }
+      },
+      "situacao": "parcialmente sustentada"
+    },
+    {
+      "id": "H5",
+      "criterios": [
+        {
+          "nome": "todos os itens da lista de verificação executados com o resultado esperado",
+          "valor": "29 de 29",
+          "ok": true
+        },
+        {
+          "nome": "nenhuma limitação conhecida confirmada pelos itens",
+          "valor": "nenhuma",
+          "ok": true
+        }
+      ],
+      "situacao": "sustentada"
+    }
+  ]
+}
