@@ -27,9 +27,11 @@ import {
 } from './application/use-cases/notifications-admin.use-cases';
 import { RegisterMailEventsUseCase } from './application/use-cases/register-mail-events.use-case';
 import { FAILED_JOBS } from './application/ports/failed-jobs.port';
+import { JOB_PAYLOAD_OPENER } from './application/ports/job-payload-opener.port';
 import { UNSUBSCRIBE_LINKS } from './application/ports/unsubscribe-links.port';
 import { SignedUnsubscribeLinks } from './infrastructure/security/signed-unsubscribe-links';
 import { BullMqFailedJobs } from './infrastructure/queue/bullmq-failed-jobs';
+import { SealedJobPayloadOpener } from './infrastructure/queue/sealed-job-payload-opener';
 import { NotificationsAdminController } from './presentation/http/notifications-admin.controller';
 import { MailEventsWebhookController } from './presentation/http/mail-events-webhook.controller';
 import { BusinessErrorsFilter } from '@shared/presentation/http';
@@ -60,6 +62,7 @@ import { NotificationsProcessor } from './presentation/queue/notifications.proce
     { provide: MAIL_SENDER, useClass: NodemailerMailSender },
     { provide: SUPPRESSION_LIST, useClass: SuppressionListTypeOrmRepository },
     { provide: FAILED_JOBS, useClass: BullMqFailedJobs },
+    { provide: JOB_PAYLOAD_OPENER, useClass: SealedJobPayloadOpener },
     { provide: UNSUBSCRIBE_LINKS, useClass: SignedUnsubscribeLinks },
     { provide: APP_FILTER, useValue: new BusinessErrorsFilter() },
     {

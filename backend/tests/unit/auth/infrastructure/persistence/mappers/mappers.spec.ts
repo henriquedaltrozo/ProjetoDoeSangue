@@ -1,3 +1,4 @@
+import { emailIndex } from '@shared/infrastructure/persistence';
 import { PasswordResetTokenOrmEntity } from '@src/infrastructure/persistence/orm-entities/password-reset-token.orm-entity';
 import { RefreshTokenOrmEntity } from '@src/infrastructure/persistence/orm-entities/refresh-token.orm-entity';
 import { UserOrmEntity } from '@src/infrastructure/persistence/orm-entities/user.orm-entity';
@@ -30,6 +31,8 @@ describe('mappers do auth', () => {
       donorId: 'd1',
       loginFailures: 0,
     });
+    // O índice cego do e-mail (usado no login e na unicidade) acompanha o e-mail cifrado.
+    expect(UserMapper.toOrm(user).emailIndex).toBe(emailIndex('a@x.com'));
   });
 
   it('RefreshToken: preserva revokedAt', () => {

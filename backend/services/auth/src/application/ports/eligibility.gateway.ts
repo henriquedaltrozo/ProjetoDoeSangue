@@ -16,6 +16,8 @@ export interface NewDonor extends DonorDeclarationsInput {
   weightKg: number;
   bloodType?: BloodType;
   healthDataConsent: boolean;
+  /** [LGPD] Versão do termo de consentimento exibida ao doador (ausente = a vigente). */
+  consentTermVersion?: string;
   /** O e-mail já foi confirmado (num cadastro novo, false). */
   emailVerified?: boolean;
 }

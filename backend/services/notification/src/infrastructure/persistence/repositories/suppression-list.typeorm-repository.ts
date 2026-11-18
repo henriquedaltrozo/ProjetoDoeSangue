@@ -1,3 +1,4 @@
+import { emailIndex } from '@shared/infrastructure/persistence';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -17,16 +18,18 @@ export class SuppressionListTypeOrmRepository implements SuppressionList {
   ) {}
 
   async reasonFor(email: string): Promise<string | null> {
-    const row = await this.repo.findOne({ where: { email: normalize(email) } });
+    const row = await this.repo.findOne({ where: { emailIndex: emailIndex(email) } });
     return row?.reason ?? null;
   }
 
   async add(email: string, reason: string): Promise<void> {
-    await this.repo.upsert({ email: normalize(email), reason }, ['email']);
+    await this.repo.upsert({ emailIndex: emailIndex(email), email: normalize(email), reason }, [
+      'emailIndex',
+    ]);
   }
 
   async remove(email: string): Promise<boolean> {
-    return ((await this.repo.delete({ email: normalize(email) })).affected ?? 0) > 0;
+    return ((await this.repo.delete({ emailIndex: emailIndex(email) })).affected ?? 0) > 0;
   }
 
   async list(limit: number): Promise<SuppressedRecipient[]> {

@@ -5,6 +5,7 @@ import {
 } from '@shared/application/messaging';
 import { NotificationJobType } from '@shared/domain/enums';
 import { DEFAULT_JOB_OPTIONS } from '@shared/infrastructure/messaging';
+import { sealJson } from '@shared/infrastructure/persistence';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import type { Queue } from 'bullmq';
@@ -14,7 +15,10 @@ import {
   ResetPasswordNotification,
 } from '../../application/ports/notification.publisher';
 
-/** Publica na fila `notifications` (consumida pelo notification-service). */
+/**
+ * Publica na fila `notifications` (consumida pelo notification-service). O corpo do job (nome, e-mail,
+ * links com token) vai cifrado: o Redis guarda os jobs em claro por padrão.
+ */
 @Injectable()
 export class NotificationsQueuePublisher implements NotificationPublisher {
   constructor(@InjectQueue(NOTIFICATIONS_QUEUE_NAME) private readonly queue: Queue) {}
@@ -30,13 +34,13 @@ export class NotificationsQueuePublisher implements NotificationPublisher {
   async enqueueResetPassword(notification: ResetPasswordNotification): Promise<void> {
     await this.queue.add(
       NotificationJobType.RESET_PASSWORD,
-      { type: NotificationJobType.RESET_PASSWORD, ...notification },
+      sealJson({ type: NotificationJobType.RESET_PASSWORD, ...notification }),
       DEFAULT_JOB_OPTIONS,
     );
   }
 
   async enqueueAccountNotice(payload: AccountNoticePayload, jobId: string): Promise<void> {
-    await this.queue.add(payload.type, payload, {
+    await this.queue.add(payload.type, sealJson(payload), {
       ...DEFAULT_JOB_OPTIONS,
       jobId,
       removeOnComplete: { age: 7 * 24 * 3600 },

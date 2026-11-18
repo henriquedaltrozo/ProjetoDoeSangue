@@ -1,4 +1,5 @@
 import { Role } from '@shared/domain/enums';
+import { encryptedColumn } from '@shared/infrastructure/persistence';
 import {
   Column,
   CreateDateColumn,
@@ -17,8 +18,15 @@ export class UserOrmEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'varchar', length: 255, unique: true })
+  /**
+   * Cifrado em repouso (IV aleatório). O login e a unicidade usam `emailIndex`, o índice cego (HMAC) do
+   * e-mail normalizado: a cifra com IV aleatório não permite comparar valores iguais.
+   */
+  @Column({ type: 'text', transformer: encryptedColumn<string>() })
   email: string;
+
+  @Column({ type: 'varchar', length: 64, unique: true })
+  emailIndex: string;
 
   @Column({ type: 'varchar', length: 255 })
   passwordHash: string;
@@ -26,7 +34,7 @@ export class UserOrmEntity {
   @Column({ type: 'enum', enum: Role })
   role: Role;
 
-  @Column({ type: 'varchar', length: 150 })
+  @Column({ type: 'text', transformer: encryptedColumn<string>() })
   name: string;
 
   @Index()
@@ -52,7 +60,7 @@ export class UserOrmEntity {
   emailVerifiedAt: Date | null;
 
   /** Novo e-mail pedido na troca, à espera de confirmação. */
-  @Column({ type: 'varchar', length: 255, nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: encryptedColumn<string>() })
   pendingEmail: string | null;
 
   @CreateDateColumn({ type: 'timestamptz' })

@@ -1,4 +1,6 @@
 import { Role } from '@shared/domain/enums';
+import { emailIndex } from '@shared/infrastructure/persistence';
+import { EncryptUserIdentity1763100000000 } from '@src/infrastructure/persistence/migrations/1763100000000-encrypt-user-identity';
 import {
   createTestDatabase,
   pendingSchemaChanges,
@@ -70,6 +72,56 @@ describe('repositórios de auth (Postgres)', () => {
       expect(byEmail?.loginFailures).toBe(1);
       expect((await users.findById(user.id))?.email).toBe('doador@example.com');
       expect(await users.findByEmail('nao@existe.com')).toBeNull();
+    });
+
+    it('guarda e-mail e nome cifrados; o login acha a conta pelo índice cego, sem diferenciar maiúsculas', async () => {
+      const user = makeUser('donor', 'Doador@Example.com');
+      await users.save(user);
+
+      const [raw] = await db.dataSource.query('SELECT * FROM auth.users WHERE id = $1', [user.id]);
+      expect(raw.email).toMatch(/^gcm:/);
+      expect(raw.name).toMatch(/^gcm:/);
+      expect(JSON.stringify(raw)).not.toContain('example.com');
+      expect(JSON.stringify(raw)).not.toContain('Fulano');
+      expect(raw.emailIndex).toBe(emailIndex('doador@example.com'));
+
+      expect((await users.findByEmail('doador@example.com'))?.id).toBe(user.id);
+      expect((await users.findByEmail('  DOADOR@EXAMPLE.COM '))?.id).toBe(user.id);
+      expect((await users.findById(user.id))?.name).toBe('Fulano');
+    });
+
+    it('volta para o formato em claro (down) e cifra de novo (up), mantendo o login e o aviso pendente', async () => {
+      const user = makeUser('donor', 'doador@example.com');
+      await users.save(user);
+      const notices = new AccountNoticeTypeOrmRepository(
+        db.dataSource.getRepository(AccountNoticeOrmEntity),
+      );
+      await notices.add({
+        type: NotificationJobType.PASSWORD_CHANGED,
+        userId: user.id,
+        name: 'Fulano',
+        recipientEmail: 'doador@example.com',
+        changedAt: NOW.toISOString(),
+      });
+      const runner = db.dataSource.createQueryRunner();
+      try {
+        await new EncryptUserIdentity1763100000000().down(runner);
+        const [legacy] = await db.dataSource.query(
+          'SELECT email, name FROM auth.users WHERE id = $1',
+          [user.id],
+        );
+        expect(legacy).toEqual({ email: 'doador@example.com', name: 'Fulano' });
+        const [notice] = await db.dataSource.query('SELECT payload FROM auth.account_notices');
+        expect(notice.payload.recipientEmail).toBe('doador@example.com');
+
+        await new EncryptUserIdentity1763100000000().up(runner);
+      } finally {
+        await runner.release();
+      }
+      const [raw] = await db.dataSource.query('SELECT payload FROM auth.account_notices');
+      expect(JSON.stringify(raw.payload)).not.toContain('doador@example.com');
+      expect((await users.findByEmail('doador@example.com'))?.name).toBe('Fulano');
+      expect(await pendingSchemaChanges(db.dataSource)).toEqual([]);
     });
 
     it('persiste o bloqueio temporário e a troca de senha', async () => {
@@ -255,6 +307,10 @@ describe('repositórios de auth (Postgres)', () => {
       const lease = new Date(Date.now() + 60_000);
       const [claimed] = await notices.claimDue(10, lease);
       expect(claimed.payload).toEqual(payload);
+      // No banco o corpo (nome, e-mail, links com token) fica cifrado por inteiro.
+      const [stored] = await db.dataSource.query('SELECT payload FROM auth.account_notices');
+      expect(stored.payload).toEqual({ sealed: expect.stringMatching(/^gcm:/) });
+      expect(JSON.stringify(stored.payload)).not.toContain('ana@example.com');
       expect(claimed.attempts).toBe(0);
       // Reservado: outra instância não pega o mesmo aviso até o vencimento.
       expect(await notices.claimDue(10, lease)).toEqual([]);

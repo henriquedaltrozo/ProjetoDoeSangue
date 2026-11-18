@@ -24,6 +24,7 @@ export interface RegisterDonorInput extends DonorDeclarationsInput {
   weightKg: number;
   bloodType?: BloodType;
   healthDataConsent: boolean;
+  consentTermVersion?: string;
 }
 
 /**
@@ -129,6 +130,7 @@ export class RegisterDonorUseCase {
       weightKg: input.weightKg,
       bloodType: input.bloodType,
       healthDataConsent: input.healthDataConsent,
+      consentTermVersion: input.consentTermVersion,
       guardianName: input.guardianName,
       guardianConsent: input.guardianConsent,
       donatedBefore60: input.donatedBefore60,

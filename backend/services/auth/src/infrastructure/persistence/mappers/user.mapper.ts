@@ -1,3 +1,4 @@
+import { emailIndex } from '@shared/infrastructure/persistence';
 import { User } from '../../../domain/entities/user';
 import { UserOrmEntity } from '../orm-entities/user.orm-entity';
 
@@ -24,6 +25,7 @@ export const UserMapper = {
     const orm = new UserOrmEntity();
     orm.id = user.id;
     orm.email = user.email;
+    orm.emailIndex = emailIndex(user.email);
     orm.passwordHash = user.passwordHash;
     orm.role = user.role;
     orm.name = user.name;

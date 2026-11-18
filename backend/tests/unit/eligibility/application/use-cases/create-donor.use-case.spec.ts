@@ -1,3 +1,4 @@
+import { CONSENT_TERM_VERSION } from '@shared/domain/consent/consent-term';
 import { BloodType, Sex } from '@shared/domain/enums';
 import { ConflictError } from '@src/application/errors/application.errors';
 import { CreateDonorUseCase } from '@src/application/use-cases/create-donor.use-case';
@@ -31,6 +32,10 @@ describe('CreateDonorUseCase', () => {
     expect(donor.active).toBe(true);
     expect(donor.permanentUnfit).toBe(false);
     expect(donor.healthDataConsentAt).toEqual(new FixedClock().now());
+    // [LGPD] A versão do termo e as bases legais ficam gravadas com o consentimento.
+    expect(donor.consentTermVersion).toBe(CONSENT_TERM_VERSION);
+    expect(donor.healthDataLegalBasis).toBe('LGPD_ART_11_I');
+    expect(donor.personalDataLegalBasis).toBe('LGPD_ART_7_I');
     // O telefone é opcional no cadastro: sem ele, fica vazio (pode ser informado no perfil).
     expect(donor.phone).toBeNull();
     expect(donors.items.size).toBe(1);
@@ -44,6 +49,13 @@ describe('CreateDonorUseCase', () => {
   it('grava o tipo sanguíneo informado no cadastro', async () => {
     const donor = await useCase.execute({ ...dto, bloodType: BloodType.O_NEGATIVE });
     expect(donor.bloodType).toBe(BloodType.O_NEGATIVE);
+  });
+
+  it('recusa o cadastro com a versão do termo desatualizada', async () => {
+    await expect(useCase.execute({ ...dto, consentTermVersion: '2020-01-01' })).rejects.toThrow(
+      /termo de consentimento mudou/,
+    );
+    expect(donors.items.size).toBe(0);
   });
 
   it('recusa o cadastro sem o consentimento para os dados de saúde', async () => {

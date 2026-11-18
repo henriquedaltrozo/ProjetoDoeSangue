@@ -1,3 +1,4 @@
+import { cpfIndex, nameWordIndexes } from '@shared/infrastructure/persistence';
 import { AccessAuditMapper } from '@src/infrastructure/persistence/mappers/access-audit.mapper';
 import { EligibilityAssessmentMapper } from '@src/infrastructure/persistence/mappers/assessment-eligibility.mapper';
 import { DonorMapper } from '@src/infrastructure/persistence/mappers/donor.mapper';
@@ -34,6 +35,9 @@ describe('mappers do eligibility', () => {
     const back = DonorMapper.toOrm(donor);
     expect(back).toBeInstanceOf(DonorOrmEntity);
     expect(back).toMatchObject({ id: 'd1', weightKg: 62.5, completeName: 'Maria', active: true });
+    // Os índices cegos (CPF e palavras do nome) acompanham os dados cifrados.
+    expect(back.cpfIndex).toBe(cpfIndex('12345678901'));
+    expect(back.nameIndexes).toEqual(nameWordIndexes('Maria'));
   });
 
   it('Donor: campos opcionais ausentes viram null', () => {

@@ -17,6 +17,11 @@ export interface CreateDonorInput extends DonorDeclarationsInput {
   bloodType?: BloodType;
   /** [LGPD] Consentimento para o uso dos dados de saúde na avaliação de elegibilidade (precisa ser true). */
   healthDataConsent: boolean;
+  /**
+   * [LGPD] Versão do termo de consentimento que o doador viu. Ausente = a vigente. Se for outra, o
+   * cadastro é recusado, para que ninguém aceite um texto que não é o atual.
+   */
+  consentTermVersion?: string;
   /** O e-mail já foi confirmado? Num cadastro novo, false (o doador confirma pelo link). Ausente = true. */
   emailVerified?: boolean;
 }

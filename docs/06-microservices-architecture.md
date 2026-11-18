@@ -312,7 +312,7 @@ ficam registradas como evolução em [Limites conhecidos](#6-limites-conhecidos)
   log de e-mails enviados guarda o link de redefinição sem o token.
 - **`x-request-id`**: um valor recebido fora do formato (até 128 caracteres de letras, dígitos, `.`, `_`, `:` e `-`) é
   trocado por um novo antes de ir para os logs e para as chamadas internas.
-- **Busca de doadores**: os curingas `%` e `_` do termo pesquisado são escapados antes do `ILIKE`.
+- **Busca de doadores**: por CPF completo (índice cego) ou por palavras inteiras do nome; não há `ILIKE` sobre dados pessoais, que ficam cifrados.
 - **Criptografia de colunas**: AES-256-GCM (ver docs/01, seção 8). Na cifra determinística (tipo sanguíneo), o IV vem de
   uma subchave derivada da chave principal, e não da própria chave (a mesma chave não serve ao HMAC e ao AES); a migration
   `1762100000000-reencrypt-blood-type` regravou os valores do formato anterior.

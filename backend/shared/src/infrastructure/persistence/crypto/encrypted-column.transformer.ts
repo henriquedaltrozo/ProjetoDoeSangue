@@ -41,6 +41,14 @@ function getKey(): Buffer {
   return createHash('sha256').update(raw).digest();
 }
 
+/**
+ * Subchave de 32 bytes derivada da chave principal para um uso específico (HMAC da chave com um
+ * rótulo). Separa as chaves: o índice cego, por exemplo, não usa a mesma chave da cifra.
+ */
+export function deriveSubkey(label: string): Buffer {
+  return createHmac('sha256', getKey()).update(label).digest();
+}
+
 export interface EncryptedColumnOptions<T = string> {
   /**
    * Deriva o IV de forma determinística a partir do próprio texto puro (HMAC

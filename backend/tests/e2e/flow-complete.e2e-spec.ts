@@ -6,7 +6,7 @@
  * Pré-requisitos: Postgres e Redis no ar e `pnpm run build` em cada serviço.
  */
 import { ChildProcess, spawn } from 'child_process';
-import { createHmac } from 'crypto';
+import { createDecipheriv, createHmac } from 'crypto';
 import * as path from 'path';
 import axios, { AxiosInstance } from 'axios';
 import { Client } from 'pg';
@@ -128,6 +128,30 @@ async function startServices(): Promise<void> {
   await Promise.all(SERVICES.map((name) => waitHealth(PORTS[name], name)));
 }
 
+/**
+ * Os dados pessoais ficam cifrados no banco (AES-256-GCM, formato `gcm:` + base64(iv | etiqueta |
+ * cifra)) e os destinatários são achados por um índice cego (HMAC do e-mail em minúsculas com uma
+ * subchave da DATA_ENCRYPTION_KEY). O teste é caixa-preta: refaz as duas contas aqui, a partir do
+ * formato, em vez de importar o código dos serviços.
+ */
+const dataKey = () => Buffer.from(process.env.DATA_ENCRYPTION_KEY ?? '', 'hex');
+
+function decryptStored(value: string): string {
+  const raw = Buffer.from(value.slice('gcm:'.length), 'base64');
+  const decipher = createDecipheriv('aes-256-gcm', dataKey(), raw.subarray(0, 12), {
+    authTagLength: 16,
+  });
+  decipher.setAuthTag(raw.subarray(12, 28));
+  return Buffer.concat([decipher.update(raw.subarray(28)), decipher.final()]).toString('utf8');
+}
+
+function emailIndexOf(email: string): string {
+  const subkey = createHmac('sha256', dataKey()).update('doesangue:blind-index:v1').digest();
+  return createHmac('sha256', subkey)
+    .update(`email\u0000${email.trim().toLowerCase()}`)
+    .digest('hex');
+}
+
 async function poll<T>(
   fn: () => Promise<T | null | undefined>,
   { timeoutMs = 15_000, intervalMs = 250 } = {},
@@ -145,6 +169,7 @@ describe('Fluxo completo (e2e via gateway)', () => {
   let db: Client; // banco do notification-service
   let dbEligibility: Client;
   let dbScheduling: Client;
+  let dbAuth: Client;
   let http: AxiosInstance;
 
   const suffix = Date.now();
@@ -169,6 +194,8 @@ describe('Fluxo completo (e2e via gateway)', () => {
     await dbEligibility.connect();
     dbScheduling = new Client(dbConfig('scheduling_db'));
     await dbScheduling.connect();
+    dbAuth = new Client(dbConfig('auth_db'));
+    await dbAuth.connect();
     http = axios.create({
       baseURL: `http://localhost:${PORTS.gateway}`,
       validateStatus: () => true,
@@ -179,6 +206,7 @@ describe('Fluxo completo (e2e via gateway)', () => {
     await db?.end();
     await dbEligibility?.end();
     await dbScheduling?.end();
+    await dbAuth?.end();
     for (const p of processes) p.kill('SIGTERM');
   });
 
@@ -236,16 +264,64 @@ describe('Fluxo completo (e2e via gateway)', () => {
     expect(res.data.user.emailVerified).toBe(false);
   });
 
+  it('o cadastro grava a versão do termo e a base legal, e recusa um termo de outra versão', async () => {
+    const donorRow = (
+      await dbEligibility.query('SELECT * FROM eligibility.donors WHERE id = $1', [donorId])
+    ).rows[0];
+    expect(donorRow.consentTermVersion).toBe('2026-11-18');
+    expect(donorRow.healthDataLegalBasis).toBe('LGPD_ART_11_I');
+    expect(donorRow.personalDataLegalBasis).toBe('LGPD_ART_7_I');
+
+    const outdated = await http.post('/auth/register', {
+      email: `termo-antigo-${Date.now()}@example.com`,
+      password: 'donorPassword123',
+      name: 'Termo Antigo',
+      cpf: '52998224725',
+      birthDate: '1995-04-12',
+      sex: 'F',
+      weightKg: 65,
+      healthDataConsent: true,
+      consentTermVersion: '2020-01-01',
+    });
+    expect(outdated.status).toBe(400);
+    expect(JSON.stringify(outdated.data)).toMatch(/termo de consentimento mudou/);
+  });
+
+  it('os dados pessoais do doador ficam cifrados em repouso (elegibilidade e autenticação)', async () => {
+    const donorRow = (
+      await dbEligibility.query('SELECT * FROM eligibility.donors WHERE id = $1', [donorId])
+    ).rows[0];
+    for (const column of ['completeName', 'cpf', 'birthDate', 'email', 'weightKg']) {
+      expect(String(donorRow[column])).toMatch(/^gcm:/);
+    }
+    expect(decryptStored(donorRow.cpf)).toBe(cpf);
+    expect(decryptStored(donorRow.email)).toBe(donorEmail);
+    expect(decryptStored(donorRow.birthDate)).toBe('1995-04-12');
+    const stored = JSON.stringify(donorRow);
+    for (const clear of [cpf, donorEmail, 'Donor E2E', '1995-04-12']) {
+      expect(stored).not.toContain(clear);
+    }
+
+    const userRow = (await dbAuth.query('SELECT * FROM auth.users WHERE id = $1', [donorUserId]))
+      .rows[0];
+    expect(String(userRow.email)).toMatch(/^gcm:/);
+    expect(String(userRow.name)).toMatch(/^gcm:/);
+    expect(decryptStored(userRow.email)).toBe(donorEmail);
+    expect(JSON.stringify(userRow)).not.toContain(donorEmail);
+    expect(userRow.emailIndex).toBe(emailIndexOf(donorEmail));
+  });
+
   it('o doador confirma o e-mail pelo link das boas-vindas', async () => {
     const welcome = await poll(async () => {
       const { rows } = await db.query(
-        `SELECT * FROM notification.sent_notifications WHERE type = $1 AND recipient = $2`,
-        [NotificationJobType.WELCOME, donorEmail],
+        `SELECT * FROM notification.sent_notifications WHERE type = $1 AND "recipientIndex" = $2`,
+        [NotificationJobType.WELCOME, emailIndexOf(donorEmail)],
       );
       return rows[0] ?? null;
     });
     // O registro de envios não guarda o token do link.
-    expect(welcome.message).toContain('verify-email?token=[omitido]');
+    expect(decryptStored(welcome.message)).toContain('verify-email?token=[omitido]');
+    expect(decryptStored(welcome.recipient)).toBe(donorEmail);
 
     const token = signLink('email-verification:v1', {
       u: donorUserId,
@@ -332,7 +408,7 @@ describe('Fluxo completo (e2e via gateway)', () => {
       return rows[0] ?? null;
     });
     expect(line.type).toBe(NotificationJobType.REMINDER_24H);
-    expect(line.recipient).toBe(donorEmail);
+    expect(decryptStored(line.recipient)).toBe(donorEmail);
     expect(line.status).toBe(NotificationStatus.SENT);
   });
 
@@ -344,7 +420,7 @@ describe('Fluxo completo (e2e via gateway)', () => {
       `SELECT message FROM notification.sent_notifications WHERE "jobId" = $1`,
       [`reminder-${appointmentId}`],
     );
-    expect(rows[0].message).toContain('confirm-attendance?token=[omitido]');
+    expect(decryptStored(rows[0].message)).toContain('confirm-attendance?token=[omitido]');
     const token = signLink('attendance-confirmation:v1', {
       a: appointmentId,
       e: new Date(appointmentDateTime).getTime(),
@@ -409,7 +485,7 @@ describe('Fluxo completo (e2e via gateway)', () => {
       );
       return rows[0] ?? null;
     });
-    expect(line.recipient).toBe(donorEmail);
+    expect(decryptStored(line.recipient)).toBe(donorEmail);
     expect(line.status).toBe(NotificationStatus.SENT);
   });
 

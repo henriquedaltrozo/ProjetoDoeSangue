@@ -46,6 +46,10 @@ export interface DonorOutput {
   readonly medicalClearanceValidUntil: string | null;
   /** [LGPD] Quando o doador consentiu com o uso dos dados de saúde (null em cadastros antigos). */
   readonly healthDataConsentAt: Date | null;
+  /** [LGPD] Versão do termo aceito e bases legais aplicadas no cadastro (null em cadastros antigos). */
+  readonly consentTermVersion: string | null;
+  readonly healthDataLegalBasis: string | null;
+  readonly personalDataLegalBasis: string | null;
   /** Aceita receber avisos de campanhas e de quando pode doar de novo. */
   readonly receiveAlerts: boolean;
 }
@@ -118,6 +122,9 @@ export function toDonorOutput(entity: Donor): DonorOutput {
       ? medicalClearanceValidUntil(entity.medicalClearanceAt)
       : null,
     healthDataConsentAt: entity.healthDataConsentAt,
+    consentTermVersion: entity.consentTermVersion,
+    healthDataLegalBasis: entity.healthDataLegalBasis,
+    personalDataLegalBasis: entity.personalDataLegalBasis,
     receiveAlerts: entity.receiveAlerts,
   };
 }

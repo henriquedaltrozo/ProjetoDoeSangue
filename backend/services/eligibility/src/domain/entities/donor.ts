@@ -1,3 +1,4 @@
+import { CONSENT_TERM_VERSION, LegalBasis } from '@shared/domain/consent/consent-term';
 import { Sex, BloodType } from '@shared/domain/enums';
 import { BusinessRuleError, InvalidValueError } from '../errors';
 import {
@@ -60,6 +61,12 @@ export interface DonorProps {
    * anteriores à coleta do consentimento.
    */
   healthDataConsentAt?: Date | null;
+  /** [LGPD] Versão do termo de consentimento aceito no cadastro (null em cadastros anteriores). */
+  consentTermVersion?: string | null;
+  /** [LGPD] Base legal dos dados de saúde (art. 11) no cadastro (null em cadastros anteriores). */
+  healthDataLegalBasis?: string | null;
+  /** [LGPD] Base legal dos demais dados pessoais (art. 7º) no cadastro (null em anteriores). */
+  personalDataLegalBasis?: string | null;
   /**
    * Aceita receber avisos por e-mail que não são resposta a algo que ele fez: campanhas urgentes e
    * "você já pode doar". Ausente equivale a sim (o doador desmarca no perfil).
@@ -95,6 +102,8 @@ export interface DonorRegistrationData {
   bloodType?: BloodType;
   /** [LGPD] Consentimento para o uso dos dados de saúde: o cadastro só é aceito com true. */
   healthDataConsent?: boolean;
+  /** [LGPD] Versão do termo que o doador viu; ausente = a vigente; outra versão recusa o cadastro. */
+  consentTermVersion?: string;
   /** O e-mail já foi confirmado (ausente = sim). */
   emailVerified?: boolean;
 }
@@ -160,6 +169,9 @@ export class Donor {
   readonly medicalClearanceBy: string | null;
   readonly version: number;
   readonly healthDataConsentAt: Date | null;
+  readonly consentTermVersion: string | null;
+  readonly healthDataLegalBasis: string | null;
+  readonly personalDataLegalBasis: string | null;
   readonly receiveAlerts: boolean;
   readonly emailVerified: boolean;
 
@@ -189,6 +201,9 @@ export class Donor {
     this.medicalClearanceBy = props.medicalClearanceBy ?? null;
     this.version = props.version ?? 1;
     this.healthDataConsentAt = props.healthDataConsentAt ?? null;
+    this.consentTermVersion = props.consentTermVersion ?? null;
+    this.healthDataLegalBasis = props.healthDataLegalBasis ?? null;
+    this.personalDataLegalBasis = props.personalDataLegalBasis ?? null;
     this.receiveAlerts = props.receiveAlerts ?? true;
     this.emailVerified = props.emailVerified ?? true;
   }
@@ -204,6 +219,12 @@ export class Donor {
     if (data.healthDataConsent !== true) {
       throw new InvalidValueError(
         'É preciso concordar com o uso dos seus dados de saúde para se cadastrar.',
+      );
+    }
+    // O consentimento vale para o texto que o doador viu: se o termo mudou, ele precisa ler o novo.
+    if (data.consentTermVersion !== undefined && data.consentTermVersion !== CONSENT_TERM_VERSION) {
+      throw new InvalidValueError(
+        'O termo de consentimento mudou. Leia a versão atual e concorde de novo para se cadastrar.',
       );
     }
     validateBirthDate(data.birthDate, now);
@@ -242,6 +263,9 @@ export class Donor {
       medicalClearanceAt: null,
       medicalClearanceBy: null,
       healthDataConsentAt: now,
+      consentTermVersion: CONSENT_TERM_VERSION,
+      healthDataLegalBasis: LegalBasis.HEALTH_DATA_CONSENT,
+      personalDataLegalBasis: LegalBasis.PERSONAL_DATA_CONSENT,
       receiveAlerts: true,
       emailVerified: data.emailVerified ?? true,
     };

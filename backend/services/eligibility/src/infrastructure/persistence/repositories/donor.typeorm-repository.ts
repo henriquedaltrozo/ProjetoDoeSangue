@@ -4,10 +4,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { FindOptionsWhere, In, Repository } from 'typeorm';
 import type { DonorPage, DonorRepository } from '../../../application/ports/donor.repository';
 import type { Donor, NewDonor } from '../../../domain/entities/donor';
-import { escapeLike } from '@shared/infrastructure/persistence/like.util';
 import { DonorMapper } from '../mappers/donor.mapper';
 import { DonorOrmEntity } from '../orm-entities/donor.orm-entity';
-import { isUniqueViolation } from '@shared/infrastructure/persistence';
+import { cpfIndex, isUniqueViolation, nameWordIndexes } from '@shared/infrastructure/persistence';
 import { ConflictError } from '../../../application/errors';
 
 @Injectable()
@@ -27,7 +26,7 @@ export class DonorTypeOrmRepository implements DonorRepository {
   }
 
   async findByCpfOrUserId(cpf: string, userId: string): Promise<Donor | null> {
-    const orm = await this.repo.findOne({ where: [{ cpf }, { userId }] });
+    const orm = await this.repo.findOne({ where: [{ cpfIndex: cpfIndex(cpf) }, { userId }] });
     return orm ? DonorMapper.toDomain(orm) : null;
   }
 
@@ -44,18 +43,28 @@ export class DonorTypeOrmRepository implements DonorRepository {
     return donors.map(DonorMapper.toDomain);
   }
 
+  /**
+   * Busca do painel admin. O nome e o CPF ficam cifrados, então a busca é por igualdade sobre índices
+   * cegos (HMAC): um CPF completo (11 dígitos, com ou sem máscara) ou palavras inteiras do nome, sem
+   * diferenciar acento nem maiúsculas ("silva jose" acha "José da Silva"; "sil" não acha). Ordena
+   * pelo cadastro mais recente, com o id como desempate (a mesma pessoa não aparece em duas páginas).
+   * Só doadores ativos: os anonimizados (conta excluída) não têm mais o que mostrar na busca.
+   */
   async find(search: string | undefined, limit: number, offset = 0): Promise<DonorPage> {
-    // Desempate pelo id: com nomes iguais, a mesma pessoa não aparece em duas páginas.
-    // Só doadores ativos: os anonimizados (conta excluída) não têm mais o que mostrar na busca.
     const query = this.repo
       .createQueryBuilder('d')
       .where('d.active = true')
-      .orderBy('d.completeName', 'ASC')
+      .orderBy('d.createdAt', 'DESC')
       .addOrderBy('d.id', 'ASC');
     if (search) {
-      query.andWhere('(d.completeName ILIKE :search OR d.cpf ILIKE :search)', {
-        search: `%${escapeLike(search)}%`,
-      });
+      const term = search.trim();
+      if (/^[\d.\-\s]+$/.test(term) && term.replace(/\D/g, '').length === 11) {
+        query.andWhere('d.cpfIndex = :cpfIndex', { cpfIndex: cpfIndex(term) });
+      } else {
+        const words = nameWordIndexes(term);
+        if (words.length === 0) return { items: [], total: 0 };
+        query.andWhere('d.nameIndexes @> :words', { words });
+      }
     }
     const [donors, total] = await query.skip(offset).take(limit).getManyAndCount();
     return { items: donors.map(DonorMapper.toDomain), total };
@@ -69,7 +78,13 @@ export class DonorTypeOrmRepository implements DonorRepository {
 
   async create(draft: NewDonor): Promise<Donor> {
     try {
-      const saved = await this.repo.save(this.repo.create(draft));
+      const saved = await this.repo.save(
+        this.repo.create({
+          ...draft,
+          cpfIndex: cpfIndex(draft.cpf),
+          nameIndexes: nameWordIndexes(draft.completeName),
+        }),
+      );
       return DonorMapper.toDomain(saved);
     } catch (err) {
       // Dois cadastros simultâneos com o mesmo CPF ou usuário: o índice único decide quem fica.

@@ -1,4 +1,5 @@
 import { NotificationJobType } from '@shared/domain/enums';
+import { decryptValue, emailIndex } from '@shared/infrastructure/persistence';
 import { NotificationStatus } from '@src/domain/enums';
 import {
   createTestDatabase,
@@ -7,6 +8,7 @@ import {
 } from '@shared/testing/test-database';
 import { NotificationLog } from '@src/domain/entities/notification-log';
 import { MIGRATIONS } from '@src/infrastructure/persistence/migrations';
+import { EncryptNotificationRecipients1763100000000 } from '@src/infrastructure/persistence/migrations/1763100000000-encrypt-notification-recipients';
 import { ErasedSubjectOrmEntity } from '@src/infrastructure/persistence/orm-entities/erased-subject.orm-entity';
 import { NotificationLogOrmEntity } from '@src/infrastructure/persistence/orm-entities/notification-log.orm-entity';
 import { NotificationLogTypeOrmRepository } from '@src/infrastructure/persistence/repositories/notification-log.typeorm-repository';
@@ -54,6 +56,11 @@ describe('repositório de notification (Postgres)', () => {
     expect(await suppression.list(10)).toEqual([
       expect.objectContaining({ email: 'fulano@example.com', reason: 'spam' }),
     ]);
+    // No banco o endereço fica cifrado; a chave da lista é o índice cego do e-mail em minúsculas.
+    const [stored] = await db.dataSource.query('SELECT * FROM notification.suppressed_recipients');
+    expect(stored.email).toMatch(/^gcm:/);
+    expect(JSON.stringify(stored)).not.toContain('fulano');
+    expect(stored.emailIndex).toBe(emailIndex('fulano@example.com'));
     expect(await suppression.remove('fulano@example.com')).toBe(true);
     expect(await suppression.reasonFor('fulano@example.com')).toBeNull();
     expect(await suppression.remove('fulano@example.com')).toBe(false);
@@ -78,7 +85,12 @@ describe('repositório de notification (Postgres)', () => {
     const rows = await db.dataSource.query('SELECT * FROM notification.sent_notifications');
     expect(rows).toHaveLength(1);
     expect(rows[0].status).toBe(NotificationStatus.SENT);
-    expect(rows[0].recipient).toBe('doador@example.com');
+    // Destinatário, assunto e texto ficam cifrados; o índice cego permite a consulta de envio.
+    expect(rows[0].recipient).toMatch(/^gcm:/);
+    expect(rows[0].message).toMatch(/^gcm:/);
+    expect(JSON.stringify(rows[0])).not.toContain('doador@example.com');
+    expect(decryptValue(rows[0].recipient)).toBe('doador@example.com');
+    expect(rows[0].recipientIndex).toBe(emailIndex('doador@example.com'));
     expect(rows[0].error).toBeNull();
   });
 
@@ -115,13 +127,30 @@ describe('repositório de notification (Postgres)', () => {
     ).toBe(1);
 
     const rows = await db.dataSource.query(
-      'SELECT recipient, message, error FROM notification.sent_notifications ORDER BY recipient',
+      'SELECT recipient, message, error FROM notification.sent_notifications',
     );
-    expect(rows).toEqual([
+    const plain = (v: string | null) => (v === null ? null : decryptValue(v));
+    // A ordem por destinatário é feita depois de decifrar: no banco o texto cifrado não ordena.
+    const decrypted = rows
+      .map((r: { recipient: string; message: string; error: string | null }) => ({
+        recipient: plain(r.recipient) as string,
+        message: plain(r.message),
+        error: plain(r.error),
+      }))
+      .sort((a: { recipient: string }, b: { recipient: string }) =>
+        a.recipient.localeCompare(b.recipient),
+      );
+    expect(decrypted).toEqual([
       // O motivo da falha (que trazia o e-mail) também sai.
       { recipient: '[removido]', message: '[removido]', error: '[removido]' },
       { recipient: 'outro@example.com', message: data.message, error: null },
     ]);
+    // O apagamento também derruba o índice cego: o endereço não pode mais ser reconhecido.
+    const erased = await db.dataSource.query(
+      `SELECT "recipientIndex" FROM notification.sent_notifications WHERE "donorId" = $1`,
+      [data.donorId],
+    );
+    expect(erased).toEqual([{ recipientIndex: null }]);
     // O titular fica marcado: e-mails dele que ainda estavam na fila não saem mais.
     expect(await logs.isErased(data.donorId, null)).toBe(true);
     expect(await logs.isErased(null, '00000000-0000-4000-8000-0000000000ff')).toBe(true);
@@ -138,6 +167,41 @@ describe('repositório de notification (Postgres)', () => {
     expect(await pendingSchemaChanges(db.dataSource)).toEqual([]);
   });
 
+  it('migration que cifra os destinatários: volta ao formato em claro (down) e cifra de novo (up)', async () => {
+    const suppression = new SuppressionListTypeOrmRepository(
+      db.dataSource.getRepository(SuppressedRecipientOrmEntity),
+    );
+    await logs.save(NotificationLog.byEmail(data));
+    await suppression.add('fulano@example.com', 'hard_bounce');
+
+    const runner = db.dataSource.createQueryRunner();
+    try {
+      await new EncryptNotificationRecipients1763100000000().down(runner);
+      const [legacy] = await db.dataSource.query(
+        'SELECT recipient, subject, message FROM notification.sent_notifications',
+      );
+      expect(legacy).toEqual({
+        recipient: 'doador@example.com',
+        subject: 'Lembrete',
+        message: 'Sua doação é amanhã',
+      });
+      const [legacyBlocked] = await db.dataSource.query(
+        'SELECT email FROM notification.suppressed_recipients',
+      );
+      expect(legacyBlocked.email).toBe('fulano@example.com');
+
+      await new EncryptNotificationRecipients1763100000000().up(runner);
+    } finally {
+      await runner.release();
+    }
+    const [raw] = await db.dataSource.query('SELECT * FROM notification.sent_notifications');
+    expect(raw.recipient).toMatch(/^gcm:/);
+    expect(raw.recipientIndex).toBe(emailIndex('doador@example.com'));
+    expect(await logs.wasSent('job-1', 'doador@example.com')).toBe(true);
+    expect(await suppression.reasonFor('Fulano@Example.com')).toBe('hard_bounce');
+    expect(await pendingSchemaChanges(db.dataSource)).toEqual([]);
+  });
+
   it('grava a falha com o motivo (FAILURE)', async () => {
     const log = NotificationLog.byEmail({ ...data, jobId: 'job-2' });
     log.markFailure('SMTP indisponível');
@@ -145,7 +209,8 @@ describe('repositório de notification (Postgres)', () => {
 
     const [row] = await db.dataSource.query('SELECT * FROM notification.sent_notifications');
     expect(row.status).toBe(NotificationStatus.FAILURE);
-    expect(row.error).toBe('SMTP indisponível');
+    expect(row.error).toMatch(/^gcm:/);
+    expect(decryptValue(row.error)).toBe('SMTP indisponível');
   });
 
   it('wasSent só reconhece entregas com sucesso do mesmo job e destinatário', async () => {

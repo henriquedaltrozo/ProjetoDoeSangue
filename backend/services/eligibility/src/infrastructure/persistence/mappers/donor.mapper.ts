@@ -1,3 +1,4 @@
+import { cpfIndex, nameWordIndexes } from '@shared/infrastructure/persistence';
 import { Donor } from '../../../domain/entities/donor';
 import { DonorOrmEntity } from '../orm-entities/donor.orm-entity';
 
@@ -29,6 +30,9 @@ export const DonorMapper = {
       medicalClearanceBy: orm.medicalClearanceBy ?? null,
       version: orm.version,
       healthDataConsentAt: orm.healthDataConsentAt ?? null,
+      consentTermVersion: orm.consentTermVersion ?? null,
+      healthDataLegalBasis: orm.healthDataLegalBasis ?? null,
+      personalDataLegalBasis: orm.personalDataLegalBasis ?? null,
       receiveAlerts: orm.receiveAlerts ?? true,
       emailVerified: orm.emailVerified ?? true,
     });
@@ -39,7 +43,9 @@ export const DonorMapper = {
       id: donor.id,
       userId: donor.userId,
       completeName: donor.completeName,
+      nameIndexes: nameWordIndexes(donor.completeName),
       cpf: donor.cpf,
+      cpfIndex: cpfIndex(donor.cpf),
       birthDate: donor.birthDate,
       sex: donor.sex,
       phone: donor.phone,
@@ -61,6 +67,9 @@ export const DonorMapper = {
       medicalClearanceBy: donor.medicalClearanceBy,
       version: donor.version,
       healthDataConsentAt: donor.healthDataConsentAt,
+      consentTermVersion: donor.consentTermVersion,
+      healthDataLegalBasis: donor.healthDataLegalBasis,
+      personalDataLegalBasis: donor.personalDataLegalBasis,
       receiveAlerts: donor.receiveAlerts,
       emailVerified: donor.emailVerified,
     });

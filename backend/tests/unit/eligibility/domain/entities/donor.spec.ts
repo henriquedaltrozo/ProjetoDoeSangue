@@ -1,3 +1,4 @@
+import { CONSENT_TERM_VERSION, LegalBasis } from '@shared/domain/consent/consent-term';
 import { Sex, BloodType } from '@shared/domain/enums';
 import { FIXED_NOW, createTestDonor } from '@test/support/fixtures.fake';
 import { Donor, TEXT_ANONYMIZED } from '@src/domain/entities/donor';
@@ -23,6 +24,9 @@ describe('Donor', () => {
       permanentUnfit: false,
       bloodType: null,
       healthDataConsentAt: FIXED_NOW,
+      consentTermVersion: CONSENT_TERM_VERSION,
+      healthDataLegalBasis: LegalBasis.HEALTH_DATA_CONSENT,
+      personalDataLegalBasis: LegalBasis.PERSONAL_DATA_CONSENT,
       lastDonationAt: null,
       donationDates: [],
       permanentUnfitnessReason: null,
@@ -43,6 +47,41 @@ describe('Donor', () => {
     expect(() => Donor.draft({ ...data, healthDataConsent: false }, FIXED_NOW)).toThrow(
       InvalidValueError,
     );
+  });
+
+  it('novo cadastro grava a versão do termo e a base legal de cada categoria de dado (LGPD)', () => {
+    const data = {
+      userId: 'u',
+      completeName: 'Fulano',
+      cpf: '12345678901',
+      birthDate: '1990-01-01',
+      sex: Sex.F,
+      email: 'f@example.com',
+      weightKg: 60,
+      healthDataConsent: true,
+    };
+    const semVersao = Donor.draft(data, FIXED_NOW);
+    expect(semVersao.consentTermVersion).toBe(CONSENT_TERM_VERSION);
+    expect(semVersao.healthDataLegalBasis).toBe('LGPD_ART_11_I');
+    expect(semVersao.personalDataLegalBasis).toBe('LGPD_ART_7_I');
+    const comVersao = Donor.draft({ ...data, consentTermVersion: CONSENT_TERM_VERSION }, FIXED_NOW);
+    expect(comVersao.consentTermVersion).toBe(CONSENT_TERM_VERSION);
+  });
+
+  it('novo cadastro recusa um termo de consentimento de outra versão', () => {
+    const data = {
+      userId: 'u',
+      completeName: 'Fulano',
+      cpf: '12345678901',
+      birthDate: '1990-01-01',
+      sex: Sex.F,
+      email: 'f@example.com',
+      weightKg: 60,
+      healthDataConsent: true,
+      consentTermVersion: '2020-01-01',
+    };
+    expect(() => Donor.draft(data, FIXED_NOW)).toThrow(/termo de consentimento mudou/);
+    expect(() => Donor.draft(data, FIXED_NOW)).toThrow(InvalidValueError);
   });
 
   it('novo cadastro rejeita CPF ou e-mail inválidos', () => {

@@ -6,8 +6,12 @@ import {
   type NotificationJobPayload,
 } from '@shared/application/messaging';
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
+import {
+  JOB_PAYLOAD_OPENER,
+  type JobPayloadOpener,
+} from '../../application/ports/job-payload-opener.port';
 import { DispatchNotificationUseCase } from '../../application/use-cases/dispatch-notification.use-case';
 import { ErasePersonalDataUseCase } from '../../application/use-cases/erase-personal-data.use-case';
 
@@ -48,6 +52,7 @@ export class NotificationsProcessor extends WorkerHost {
   constructor(
     private readonly dispatchNotification: DispatchNotificationUseCase,
     private readonly erasePersonalData: ErasePersonalDataUseCase,
+    @Inject(JOB_PAYLOAD_OPENER) private readonly payloads: JobPayloadOpener,
   ) {
     super();
   }
@@ -61,7 +66,11 @@ export class NotificationsProcessor extends WorkerHost {
       this.logger.warn(`Job de tipo desconhecido recebido: ${job.name}`);
       return;
     }
-    await this.dispatchNotification.execute(job.data as NotificationJobPayload, job.id);
+    // O corpo vem cifrado (ver os publicadores); jobs enfileirados antes da cifra continuam legíveis.
+    await this.dispatchNotification.execute(
+      this.payloads.open<NotificationJobPayload>(job.data),
+      job.id,
+    );
   }
 
   /**
