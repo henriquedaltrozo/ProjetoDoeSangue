@@ -107,7 +107,7 @@ dificultam automatizar tentativas contra o fluxo - ver seção 8.2.
 ## 4. Schema `eligibility`
 
 Dono dos dados cadastrais/clínicos do doador e do motor de regras de elegibilidade (regras
-completas: ver `03-eligibility-rules.md`).
+completas: ver `03-regras-elegibilidade.md`).
 
 ### 4.1 `donors`
 
@@ -161,7 +161,7 @@ cifrado não pode ser comparado pelo banco. Cada consulta fica no log de auditor
 Períodos de inaptidão temporária (tatuagem recente, gravidez, viagem a área de risco de malária
 etc.), registrados pelo admin. Cada período é uma linha; **não existe um flag booleano
 "inapto agora"** persistido - se o doador está inapto neste exato momento é *calculado* a partir
-das datas, toda vez que a elegibilidade é avaliada (ver `03-eligibility-rules.md`, seção sobre
+das datas, toda vez que a elegibilidade é avaliada (ver `03-regras-elegibilidade.md`, seção sobre
 inaptidão temporária).
 
 | Coluna              | Tipo                          | Observação                                   |
@@ -198,7 +198,7 @@ tela (o painel mostra só a situação atual do doador); servem de registro, fic
 | `result`                    | enum (`ELIGIBLE`, `TEMPORARY_UNFIT`, `PERMANENT_UNFIT`) |                                                          |
 | `reasons`                       | jsonb (array de `IneligibilityReason`)              | vazio quando `ELIGIBLE`                                       |
 | `notices`                       | jsonb (array de `AssessmentNotice`), default `[]`   | avisos de uma avaliação apta (ex.: levar o termo do responsável) |
-| `nextEligibilityDate`        | date, nullable                                      | a maior das datas candidatas entre os motivos (ver `03-eligibility-rules.md`) |
+| `nextEligibilityDate`        | date, nullable                                      | a maior das datas candidatas entre os motivos (ver `03-regras-elegibilidade.md`) |
 | `origin`                        | enum (`DONOR_QUERY`, `APPOINTMENT_VALIDATION`)     | quem disparou a avaliação                                  |
 | `assessedAt`                    | timestamptz                                         |                                                          |
 
@@ -217,7 +217,7 @@ insere, nunca atualiza ou apaga; uma falha ao gravar aqui nunca derruba a opera�
 | `action`                   | enum (`VIEW`, `UPDATE`, `EXPORT`, `ANONYMIZATION`, `SEARCH`)       | `SEARCH`: o doador apareceu numa busca do admin (nome e CPF exibidos) |
 | `createdAt`                | timestamptz                                                                    |                                                                |
 
-Consultável via `GET /donors/:id/audit` (admin) - ver `04-api-contracts.md`.
+Consultável via `GET /donors/:id/audit` (admin) - ver `04-contratos-api.md`.
 
 ## 5. Schema `scheduling`
 
@@ -237,7 +237,7 @@ Consultável via `GET /donors/:id/audit` (admin) - ver `04-api-contracts.md`.
 
 Campanhas de doação (regulares, urgentes, ou de um tipo sanguíneo específico), criadas pelo
 admin. Campanhas `URGENT` disparam, na criação, uma notificação
-assíncrona (BullMQ) para os doadores ativos compatíveis - ver `02-sequence-diagram.md`.
+assíncrona (BullMQ) para os doadores ativos compatíveis - ver `02-diagramas-sequencia.md`.
 
 | Coluna                | Tipo                                                       | Observação                          |
 | ------------------------ | ------------------------------------------------------------ | --------------------------------------- |
@@ -280,7 +280,7 @@ unidade cadastrou `operatingHours`, cai dentro de uma das faixas do dia. Um doad
 agendamento em aberto por vez: `CHECKIN_PERFORMED`, ou `SCHEDULED`/`ELIGIBILITY_CONFIRMED`/`CONFIRMED`
 com horário ainda por vir.
 
-**Máquina de estados de `status`** (diagrama completo: `02-sequence-diagram.md`):
+**Máquina de estados de `status`** (diagrama completo: `02-diagramas-sequencia.md`):
 
 ```
 SCHEDULED → ELIGIBILITY_CONFIRMED → CONFIRMED → CHECKIN_PERFORMED → COMPLETED

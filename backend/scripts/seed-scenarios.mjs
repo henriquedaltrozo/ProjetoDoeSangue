@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Cria contas de teste, uma para cada cenário de doação (ver docs/07-test-scenarios.md), mais um
+ * Cria contas de teste, uma para cada cenário de doação (ver docs/07-cenarios-teste.md), mais um
  * admin, duas unidades de coleta e três campanhas. Tudo passa pela API de verdade (cadastro, ações
  * do admin, agendamentos), então os dados seguem as mesmas regras de um uso real.
  *
@@ -401,7 +401,7 @@ async function main() {
 
   const failed = results.filter((r) => r.status.startsWith('ERRO'));
   console.log(`\n${results.length - failed.length}/${results.length} contas prontas. Senha de todas: ${TEST_PASSWORD}`);
-  console.log(`Admin de teste: ${ADMIN_EMAIL}. Guia dos cenários: docs/07-test-scenarios.md`);
+  console.log(`Admin de teste: ${ADMIN_EMAIL}. Guia dos cenários: docs/07-cenarios-teste.md`);
   if (failed.length > 0) process.exitCode = 1;
 }
 

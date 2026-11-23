@@ -104,7 +104,7 @@ backend/
   enums e erros do domínio.
 - Todas as entidades têm campos `readonly` e mudam apenas por métodos de domínio (via um `mutate` privado).
 - O cadastro de doador é uma saga com resultado resolvível (roll-forward ou desfazer, mais reconciliação periódica); ver
-  `02-sequence-diagram.md`, seção 1. Repetir o cadastro com o `User` ainda pendente
+  `02-diagramas-sequencia.md`, seção 1. Repetir o cadastro com o `User` ainda pendente
   (mesmo e-mail e senha) retoma a saga em vez de responder "e-mail já cadastrado". A exclusão de conta (`DeleteMyAccount`) anonimiza
   primeiro o doador no eligibility (idempotente) e depois, **numa única transação** (`UnitOfWork` do auth), o `User` e os tokens: ou a parte
   local se completa inteira, ou nada muda e o pedido pode ser repetido.

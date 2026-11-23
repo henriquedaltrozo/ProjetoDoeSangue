@@ -4,7 +4,7 @@ Este documento descreve os três pilares de observabilidade implementados no bac
 id entre serviços, health checks reais e logging estruturado. Os três vivem juntos numa lib
 compartilhada, `backend/shared/src/infrastructure/observability`, importada por todos os 5 serviços.
 
-## 1. Correlation id (`x-request-id`)
+## 1. Id de correlação (`x-request-id`)
 
 Problema que resolve: numa requisição que atravessa gateway → scheduling-service →
 eligibility-service, cada serviço logava isoladamente - não havia nada que amarrasse as três
@@ -41,7 +41,7 @@ front, se for guardado) e grep nos logs de todos os serviços:
 grep '"requestId":"<id>"' /caminho/para/*.log
 ```
 
-## 2. Health checks reais
+## 2. Verificações de saúde (health checks) reais
 
 Antes, todo `/health` respondia sempre `{status: 'ok', ...}` - um placeholder que não checava
 nada. Agora, cada serviço usa `@nestjs/terminus` para checar de verdade suas dependências:
@@ -71,7 +71,7 @@ tinha `/health`. Agora sobe um HTTP mínimo (`NestFactory.create` + `app.listen`
 rota, na porta `NOTIFICATION_SERVICE_PORT` (padrão `3004`); continua sem nenhuma rota de negócio e
 sem ser alcançável pelo gateway.
 
-## 3. Logging estruturado
+## 3. Logs estruturados
 
 `AppLogger` (`backend/shared/src/infrastructure/observability/app-logger.service.ts`) estende o `ConsoleLogger` do Nest e
 emite uma linha JSON por evento, sempre com `timestamp`, `level`, `service` e (dentro de uma

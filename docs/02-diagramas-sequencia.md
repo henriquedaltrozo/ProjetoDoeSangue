@@ -3,7 +3,7 @@
 Diagramas dos fluxos mais importantes do sistema, todos passando pelo gateway (única porta de
 entrada do frontend para o backend). Fontes: casos de uso em `backend/application/{auth,eligibility,scheduling}`
 (`RegisterDonorUseCase`, `CreateAppointmentUseCase`, `CompleteAppointmentUseCase`, `AssessEligibilityUseCase`,
-`CreateCampaignUseCase`), `NotificationQueuePublisher` (infrastructure) e `NotificationsProcessor` (presentation) (ver `01-entity-modeling.md` para as entidades envolvidas).
+`CreateCampaignUseCase`), `NotificationQueuePublisher` (infrastructure) e `NotificationsProcessor` (presentation) (ver `01-modelagem-entidades.md` para as entidades envolvidas).
 
 ## 1. Cadastro de doador (saga com resultado sempre resolvível)
 
@@ -67,7 +67,7 @@ sequenceDiagram
 
 A avaliação de elegibilidade acontece **dentro** da requisição de criação do agendamento (não é
 assíncrona) - por isso o status já nasce `ELIGIBILITY_CONFIRMED` ou `ELIGIBILITY_DENIED`, e
-o frontend mostra o resultado imediatamente. Ver `01-entity-modeling.md`, seção 5.3, para o
+o frontend mostra o resultado imediatamente. Ver `01-modelagem-entidades.md`, seção 5.3, para o
 detalhe do advisory lock usado para evitar overbooking.
 
 ```mermaid
