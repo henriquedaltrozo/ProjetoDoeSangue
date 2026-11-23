@@ -25,7 +25,7 @@ path (tabela completa em `backend/services/gateway/src/infrastructure/proxy/prox
 - **dono ou admin**: JWT de qualquer papel, mas o backend confere que o `donorId` do token bate
   com o recurso acessado, a menos que o token seja de um admin (`requireOwnerOrAdmin`, aplicado nos casos de uso).
 - **bootstrap**: público **só enquanto nenhum admin existir** no banco; depois disso, exige JWT
-  admin (`BootstrapOrAdminGuard` - ver `01-entity-modeling.md`, seção 7).
+  admin (`BootstrapOrAdminGuard` - ver `01-modelagem-entidades.md`, seção 7).
 - **interno**: não é exposto ao frontend (o gateway responde 404 a essas rotas); só outro serviço pode chamar, com um header
   `x-internal-api-key` válido (`InternalApiKeyGuard`).
 
@@ -33,7 +33,7 @@ path (tabela completa em `backend/services/gateway/src/infrastructure/proxy/prox
 
 | Método e path        | Auth       | Descrição                                                          |
 | ----------------------- | ------------ | ---------------------------------------------------------------------- |
-| `POST /auth/register`     | público        | Cadastro de doador - cria `User` + `Donor` (via eligibility-service) e já retorna tokens. Pede as declarações exigidas pela idade, a última doação e o tipo sanguíneo (opcionais) e o consentimento para o uso dos dados de saúde (`healthDataConsent: true`, obrigatório - LGPD; ver `03-eligibility-rules.md`). O campo opcional `consentTermVersion` informa a versão do termo exibida (ver `10-termo-consentimento.md`): se for omitido, vale a vigente, e se for outra, o cadastro é recusado (400). A versão do termo e a base legal ficam gravadas com o doador |
+| `POST /auth/register`     | público        | Cadastro de doador - cria `User` + `Donor` (via eligibility-service) e já retorna tokens. Pede as declarações exigidas pela idade, a última doação e o tipo sanguíneo (opcionais) e o consentimento para o uso dos dados de saúde (`healthDataConsent: true`, obrigatório - LGPD; ver `03-regras-elegibilidade.md`). O campo opcional `consentTermVersion` informa a versão do termo exibida (ver `10-termo-consentimento.md`): se for omitido, vale a vigente, e se for outra, o cadastro é recusado (400). A versão do termo e a base legal ficam gravadas com o doador |
 | `POST /auth/admin`          | bootstrap      | Cadastro de admin - o primeiro exige o header `x-setup-token` (= `ADMIN_SETUP_TOKEN`); depois exige JWT admin. 10 req/15min por IP |
 | `POST /auth/login`            | público        | Retorna o access token no corpo e grava o refresh token em cookie httpOnly. 10 req/15min por IP; conta bloqueada 15 min após 5 senhas erradas seguidas (429) |
 | `POST /auth/refresh`            | cookie*       | Rotaciona o refresh token (*lido do cookie httpOnly `doesangue_rt`, sem corpo; a `Origin`, se houver, precisa estar em `CORS_ORIGINS`) |
@@ -47,11 +47,11 @@ path (tabela completa em `backend/services/gateway/src/infrastructure/proxy/prox
 | `GET /auth/admins`                        | JWT admin      | Lista todos os usuários admin                                          |
 | `POST /auth/admins/:id/deactivate`           | JWT admin      | Desativa outro admin (bloqueado para a própria conta e para o último admin ativo) |
 | `POST /auth/admins/:id/reactivate`              | JWT admin      | Reativa um admin previamente desativado                                  |
-| `POST /auth/me/delete-data`                   | JWT (só `donor`) | **[LGPD]** Solicita a exclusão (anonimização) dos próprios dados. Corpo: `{ currentPassword }` (senha atual; limite de 5 tentativas / 15 min). Orquestra a anonimização no eligibility-service, revoga sessões e limpa o cookie - ver `01-entity-modeling.md`, seção 8.4 |
+| `POST /auth/me/delete-data`                   | JWT (só `donor`) | **[LGPD]** Solicita a exclusão (anonimização) dos próprios dados. Corpo: `{ currentPassword }` (senha atual; limite de 5 tentativas / 15 min). Orquestra a anonimização no eligibility-service, revoga sessões e limpa o cookie - ver `01-modelagem-entidades.md`, seção 8.4 |
 
 Nota sobre `/auth/forgot-password`: quando o e-mail existe, o token de redefinição é sempre
 enfileirado para envio real por e-mail (via `notification-service`/`NodemailerMailSender`, SMTP - ver
-`01-entity-modeling.md`, seção 6). O token só volta também no corpo da resposta
+`01-modelagem-entidades.md`, seção 6). O token só volta também no corpo da resposta
 (`resetToken`) quando nenhum provedor SMTP real está configurado (`SMTP_HOST` vazio - modo
 simulado, padrão em dev/CI) e o serviço não está em produção; com SMTP configurado, o token nunca é
 retornado pela API, só chega por e-mail. Em produção (`NODE_ENV=production`) sem SMTP, o token também
@@ -86,7 +86,7 @@ não volta na resposta: o link fica só no log do auth-service.
 
 Nota sobre exportação completa: o front (`ProfilePage`) combina `GET /donors/:id/export` com
 `GET /auth/me` e `GET /appointments/me` num único arquivo baixado pelo doador - não existe um
-endpoint único de agregação entre os três serviços (ver `01-entity-modeling.md`, seção 8.4).
+endpoint único de agregação entre os três serviços (ver `01-modelagem-entidades.md`, seção 8.4).
 
 ## `unidades-coleta` (scheduling-service)
 
@@ -105,7 +105,7 @@ endpoint único de agregação entre os três serviços (ver `01-entity-modeling
 | ------------------------------ | ------------- | ---------------------------------------------------------------------- |
 | `GET /campaigns`                 | público         | Lista campanhas ativas - usado na home do portal do doador                |
 | `GET /campaigns/:id`                | público         | Detalhe de uma campanha                                                  |
-| `POST /campaigns`                     | JWT admin         | Cria uma campanha (`REGULAR` ou `URGENT`, tipo sanguíneo opcional); `URGENT` dispara notificação assíncrona (ver `02-sequence-diagram.md`, item 4) |
+| `POST /campaigns`                     | JWT admin         | Cria uma campanha (`REGULAR` ou `URGENT`, tipo sanguíneo opcional); `URGENT` dispara notificação assíncrona (ver `02-diagramas-sequencia.md`, item 4) |
 | `DELETE /campaigns/:id`                 | JWT admin         | Desativa uma campanha                                                     |
 
 ## `appointments` (scheduling-service)
@@ -117,7 +117,7 @@ Todas as rotas exigem JWT, exceto `POST /appointments/confirm-attendance` (públ
 | `GET /appointments/availability`   | JWT               | Vagas ocupadas/disponíveis por horário, numa unidade e data              |
 | `GET /appointments/me`                  | JWT               | Histórico de agendamentos do doador autenticado                          |
 | `GET /appointments`                       | JWT admin          | Lista agendamentos com filtros opcionais (`status`, `collectionUnitId`, `data`) |
-| `POST /appointments`                        | JWT               | Cria um agendamento (avalia elegibilidade de forma síncrona - ver `02-sequence-diagram.md`, item 2). O horário segue a grade de 30 min e o horário de funcionamento da unidade, se cadastrado; um doador só tem um agendamento em aberto por vez |
+| `POST /appointments`                        | JWT               | Cria um agendamento (avalia elegibilidade de forma síncrona - ver `02-diagramas-sequencia.md`, item 2). O horário segue a grade de 30 min e o horário de funcionamento da unidade, se cadastrado; um doador só tem um agendamento em aberto por vez |
 | `GET /appointments/:id`                       | dono ou admin      | Detalhe de um agendamento                                                |
 | `POST /appointments/:id/cancel`               | dono ou admin      | Cancela. O doador: antes do horário e do check-in. O admin: também depois deles. Agendamentos encerrados (`COMPLETED`, `NO_SHOW`, `ELIGIBILITY_DENIED`, `CANCELED`) não são cancelados |
 | `POST /appointments/internal/donors-with-open-appointment` | interno | Dos `donorIds` do corpo (até 5000), devolve os que têm agendamento em aberto - usado pelo eligibility para não mandar "já pode doar" a quem já agendou |
@@ -125,7 +125,7 @@ Todas as rotas exigem JWT, exceto `POST /appointments/confirm-attendance` (públ
 | `POST /appointments/:id/confirm-attendance`      | dono ou admin      | Confirma a presença (`ELIGIBILITY_CONFIRMED` → `CONFIRMED`, idempotente); retorna `{id, dateTime, status, confirmedAt}` |
 | `POST /appointments/confirm-attendance`          | público (token)    | Corpo `{token}`. Confirma pelo link do e-mail; `400` token inválido, `410` token expirado (após o horário do agendamento) |
 | `POST /appointments/:id/checkin`                  | JWT admin          | Registra o check-in (exige `ELIGIBILITY_CONFIRMED` ou `CONFIRMED` e que seja o dia do agendamento, no horário de Brasília) depois de reavaliar a elegibilidade para hoje; a doação concluída é registrada no dia do agendamento; `409` se o doador não está mais apto |
-| `POST /appointments/:id/complete`                   | JWT admin          | Conclui a doação (exige `CHECKIN_PERFORMED`) - ver `02-sequence-diagram.md`, item 3 |
+| `POST /appointments/:id/complete`                   | JWT admin          | Conclui a doação (exige `CHECKIN_PERFORMED`) - ver `02-diagramas-sequencia.md`, item 3 |
 | `GET /outbox/failures`                                | JWT admin          | Lista eventos do outbox que esgotaram as tentativas |
 | `POST /outbox/:id/reprocess`                      | JWT admin          | Devolve um evento em `FAILURE` para a fila |
 | `POST /outbox/reconcile`                          | JWT admin          | Executa já a reconciliação do outbox (roda sozinha a cada 10 min) |
@@ -142,11 +142,11 @@ Todas as rotas exigem JWT, exceto `POST /appointments/confirm-attendance` (públ
 | `DELETE /notifications/suppressed/:email`        | JWT admin          | Desbloqueia um endereço (`404` se não está bloqueado) |
 | `POST /notifications/webhooks/mail?token=`       | segredo na URL     | Eventos do provedor de e-mail (`{event, email}` ou lista); bloqueia `hard_bounce`, `invalid_email`, `blocked`, `spam`. `404` sem `MAIL_WEBHOOK_SECRET`, `403` token errado |
 
-## Health checks
+## Verificações de saúde (health checks)
 
 Todo serviço (gateway incluso) expõe `GET /health` (público, sem prefixo de roteamento - não passa
 pelo gateway como as rotas de negócio) com uma checagem real de suas dependências (Postgres/Redis,
-ou o `/health` dos serviços de destino no caso do gateway) - ver `docs/05-observability.md` para
+ou o `/health` dos serviços de destino no caso do gateway) - ver `docs/05-observabilidade.md` para
 detalhes de cada indicador e o formato da resposta. Responde `503` quando alguma dependência está
 fora do ar.
 

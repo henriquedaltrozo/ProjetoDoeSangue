@@ -8,7 +8,7 @@ O motor de elegibilidade vive inteiro em `eligibility-service` (função de dom�
   concluir uma doação, para recalcular a próxima data elegível (`origin = DONOR_QUERY`).
 
 Toda avaliação gera uma linha em `eligibility_assessments` (nunca sobrescreve uma anterior) - ver
-`01-entity-modeling.md`, seção 4.3.
+`01-modelagem-entidades.md`, seção 4.3.
 
 ## Valores de referência
 

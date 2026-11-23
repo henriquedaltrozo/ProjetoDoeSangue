@@ -246,7 +246,7 @@ services:
     # notification-service continua sendo majoritariamente um worker BullMQ
     # (não tem rota de negócio e não é alcançável pelo gateway - ver
     # arquitetura) mas agora expõe uma porta só para /health (ver
-    # docs/05-observability.md), daí o healthcheck abaixo.
+    # docs/05-observabilidade.md), daí o healthcheck abaixo.
     ports:
       # Só na própria máquina (127.0.0.1): fora dela, o único acesso é pelo gateway.
       - '127.0.0.1:3004:3004'

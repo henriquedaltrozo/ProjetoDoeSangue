@@ -42,7 +42,7 @@ auditoria fica na camada de aplicação (`AuditedDonorOperations`). O pnpm insta
 `node_modules` de cada serviço contém apenas as dependências que ele declarou. Nas imagens Docker, `pnpm deploy --prod`
 gera um `node_modules` só com as dependências de produção do serviço.
 
-Arquitetura e decisões: `docs/06-microservices-architecture.md`.
+Arquitetura e decisões: `docs/06-arquitetura-microsservicos.md`.
 
 ## Subindo tudo com Docker Compose
 
@@ -92,7 +92,7 @@ Em desenvolvimento um único banco serve para todos (`DB_*`); para isolar, defin
 O primeiro admin só pode ser criado com o token de instalação: defina `ADMIN_SETUP_TOKEN` no auth-service e
 informe-o na tela `/setup-admin` (ou no header `x-setup-token` de `POST /auth/admin`). Sem a variável o
 cadastro fica fechado. Outras variáveis: `CORS_ORIGINS` (origens do front), `COOKIE_SECURE`/`COOKIE_SAMESITE`
-(cookie do refresh token). Detalhes em `docs/06-microservices-architecture.md`.
+(cookie do refresh token). Detalhes em `docs/06-arquitetura-microsservicos.md`.
 
 Ao atualizar um banco que já tem dados cifrados, rode uma vez a migração para AES-256-GCM:
 `cd backend/services/eligibility && pnpm run build && pnpm run reencrypt   # script em backend/services/eligibility/src/infrastructure/scripts`.
